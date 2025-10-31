@@ -28,8 +28,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     // Pedidos por período
     List<Pedido> findByDataPedidoBetween(LocalDateTime inicio, LocalDateTime fim);
 
-    // Pedidos de hoje
-    @Query("SELECT p FROM Pedido p WHERE DATE(p.dataPedido) = CURRENT_DATE ORDER BY p.dataPedido DESC")
+    // ✅ SOLUÇÃO DEFINITIVA - Native query H2
+    @Query(value = "SELECT * FROM pedidos WHERE FORMATDATETIME(data_pedido, 'yyyy-MM-dd') = FORMATDATETIME(CURRENT_TIMESTAMP, 'yyyy-MM-dd') ORDER BY data_pedido DESC", nativeQuery = true)
     List<Pedido> buscarPedidosDeHoje();
 
     // Pedidos por cliente ordenados por data (mais recente primeiro)
