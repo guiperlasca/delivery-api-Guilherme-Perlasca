@@ -27,6 +27,12 @@ public interface RestauranteRepository extends JpaRepository<Restaurante, Long> 
     // Busca por avaliação mínima
     List<Restaurante> findByAvaliacaoGreaterThanEqual(BigDecimal avaliacaoMinima);
 
+    // Busca por taxa de entrega menor ou igual
+    List<Restaurante> findByTaxaEntregaLessThanEqual(BigDecimal taxa);
+
+    // Busca os 5 primeiros restaurantes ordenados por nome
+    List<Restaurante> findTop5ByOrderByNomeAsc();
+
     // Busca ordenada por avaliação (melhor primeiro)
     @Query("SELECT r FROM Restaurante r WHERE r.ativo = true ORDER BY r.avaliacao DESC")
     List<Restaurante> buscarAtivosOrdenadosPorAvaliacao();

@@ -27,6 +27,12 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     // Busca por categoria e disponível
     List<Produto> findByCategoriaAndDisponivelTrue(String categoria);
 
+    // Busca todos os produtos disponíveis no geral
+    List<Produto> findByDisponivelTrue();
+
+    // Busca produtos com preço menor ou igual ao valor informado
+    List<Produto> findByPrecoLessThanEqual(BigDecimal preco);
+
     // Busca por nome (contém)
     List<Produto> findByNomeContainingIgnoreCase(String nome);
 

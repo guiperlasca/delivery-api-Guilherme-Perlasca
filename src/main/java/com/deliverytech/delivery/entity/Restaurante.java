@@ -30,6 +30,9 @@ public class Restaurante {
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao = LocalDateTime.now();
 
+    @Column(name = "taxa_entrega", precision = 10, scale = 2)
+    private BigDecimal taxaEntrega;
+
     // Construtores
     public Restaurante() {}
 
@@ -61,4 +64,7 @@ public class Restaurante {
 
     public LocalDateTime getDataCriacao() { return dataCriacao; }
     public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+
+    public BigDecimal getTaxaEntrega() { return taxaEntrega; }
+    public void setTaxaEntrega(BigDecimal taxaEntrega) { this.taxaEntrega = taxaEntrega; }
 }
