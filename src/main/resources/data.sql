@@ -6,13 +6,13 @@ INSERT INTO clientes (nome, email, telefone, endereco, ativo, data_criacao) VALU
 ('Diana Prince', 'wonderwoman@themyscira.com', '11999000004', 'Paradise Island, 1 - Washington/DC', true, CURRENT_TIMESTAMP),
 ('Clark Kent', 'superman@dailyplanet.com', '11999000005', 'Smallville Farm, 344 - Metropolis/KS', false, CURRENT_TIMESTAMP);
 
-INSERT INTO restaurantes (nome, categoria, endereco, avaliacao, ativo, data_criacao) VALUES
-('McDonalds da Times Square', 'Fast Food', 'Times Square, 1560 - New York/NY', 4.2, true, CURRENT_TIMESTAMP),
-('KFC do Colonel Sanders', 'Frango Frito', 'Kentucky Avenue, 1890 - Louisville/KY', 4.5, true, CURRENT_TIMESTAMP),
-('Subway da 5th Avenue', 'Sanduíches', '5th Avenue, 350 - New York/NY', 4.1, true, CURRENT_TIMESTAMP),
-('Pizza Hut da Hollywood', 'Pizza', 'Hollywood Boulevard, 6801 - Los Angeles/CA', 4.3, true, CURRENT_TIMESTAMP),
-('Burger King do Vegas', 'Hambúrgueres', 'Las Vegas Strip, 3667 - Las Vegas/NV', 4.0, true, CURRENT_TIMESTAMP),
-('Taco Bell Demolition Man', 'Mexicana', 'Franchise Wars Street, 2032 - Future City/CA', 3.8, false, CURRENT_TIMESTAMP);
+INSERT INTO restaurantes (nome, categoria, endereco, avaliacao, ativo, data_criacao, taxa_entrega) VALUES
+('McDonalds da Times Square', 'Fast Food', 'Times Square, 1560 - New York/NY', 4.2, true, CURRENT_TIMESTAMP, 5.99),
+('KFC do Colonel Sanders', 'Frango Frito', 'Kentucky Avenue, 1890 - Louisville/KY', 4.5, true, CURRENT_TIMESTAMP, 4.50),
+('Subway da 5th Avenue', 'Sanduíches', '5th Avenue, 350 - New York/NY', 4.1, true, CURRENT_TIMESTAMP, 0.00),
+('Pizza Hut da Hollywood', 'Pizza', 'Hollywood Boulevard, 6801 - Los Angeles/CA', 4.3, true, CURRENT_TIMESTAMP, 3.50),
+('Burger King do Vegas', 'Hambúrgueres', 'Las Vegas Strip, 3667 - Las Vegas/NV', 4.0, true, CURRENT_TIMESTAMP, 6.00),
+('Taco Bell Demolition Man', 'Mexicana', 'Franchise Wars Street, 2032 - Future City/CA', 3.8, false, CURRENT_TIMESTAMP, 8.00);
 
 
 INSERT INTO produtos (nome, descricao, preco, categoria, disponivel, restaurante_id) VALUES
