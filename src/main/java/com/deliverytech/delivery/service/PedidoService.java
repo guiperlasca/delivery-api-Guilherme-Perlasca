@@ -92,6 +92,16 @@ public class PedidoService {
         return pedidoRepository.findByDataPedidoBetween(inicio, fim);
     }
 
+    // Busca pedidos com valor acima de X
+    public List<Pedido> buscarComValorAcimaDe(BigDecimal valorMinimo) {
+        return pedidoRepository.buscarPedidosComValorAcimaDe(valorMinimo);
+    }
+
+    // Busca por período e status
+    public List<Pedido> buscarPorPeriodoEStatus(LocalDateTime inicio, LocalDateTime fim, StatusPedido status) {
+        return pedidoRepository.buscarPorPeriodoEStatus(inicio, fim, status);
+    }
+
     // Atualizar status do pedido
     public Pedido atualizarStatus(Long id, StatusPedido novoStatus) {
         Optional<Pedido> pedidoOpt = pedidoRepository.findById(id);

@@ -11,7 +11,9 @@ import com.deliverytech.delivery.repository.RestauranteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,9 +34,9 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("--- 🚀 INICIANDO VALIDAÇÃO DAS CONSULTAS (ATIVIDADE 2) ---");
+        System.out.println("--- INICIANDO VALIDAÇÃO DAS CONSULTAS (ATIVIDADE 2) ---");
 
-        // Cenário 1: Busca de Cliente por Email [cite: 94]
+        // Cenário 1: Busca de Cliente por Email
         System.out.println("\n--- 🔎 Cenário 1: Buscando Cliente 'batman@wayneenterprises.com' ---");
         Optional<Cliente> clienteOpt = clienteRepository.findByEmail("batman@wayneenterprises.com");
         if (clienteOpt.isPresent()) {
@@ -43,14 +45,14 @@ public class DataLoader implements CommandLineRunner {
             System.out.println("Resultado: Cliente não encontrado.");
         }
 
-        // Cenário 2: Produtos por Restaurante (ID 1L = McDonalds) [cite: 97]
+        // Cenário 2: Produtos por Restaurante (ID 1L = McDonalds)
         System.out.println("\n--- Cenário 2: Buscando Produtos do Restaurante ID 1 (McDonalds) ---");
         List<Produto> produtosRest1 = produtoRepository.findByRestauranteId(1L);
         System.out.println("Resultado: Encontrados " + produtosRest1.size() + " produtos.");
         produtosRest1.forEach(p -> System.out.println("  -> " + p.getNome()));
 
-        // Cenário 3: Pedidos Recentes (Top 10) [cite: 100]
-        System.out.println("\n--- 📅 Cenário 3: Buscando 10 Pedidos Mais Recentes ---");
+        // Cenário 3: Pedidos Recentes (Top 10)
+        System.out.println("\n--- Cenário 3: Buscando 10 Pedidos Mais Recentes ---");
         List<Pedido> pedidosRecentes = pedidoRepository.findTop10ByOrderByDataPedidoDesc();
         System.out.println("Resultado: Encontrados " + pedidosRecentes.size() + " pedidos.");
         pedidosRecentes.forEach(p -> System.out.println("  -> ID: " + p.getId() + " | Status: " + p.getStatus() + " | Data: " + p.getDataPedido()));
@@ -81,6 +83,22 @@ public class DataLoader implements CommandLineRunner {
         List<Produto> produtosBaratos = produtoRepository.findByPrecoLessThanEqual(new BigDecimal("10.00"));
         System.out.println("Resultado: " + produtosBaratos.size() + " produtos encontrados.");
         produtosBaratos.forEach(p -> System.out.println("  -> " + p.getNome() + " | Preço: " + p.getPreco()));
+
+        System.out.println("\n--- VALIDAÇÃO ATIVIDADE 3 (@Query) ---");
+
+        // Teste: Pedidos com valor acima de R$ 50
+        System.out.println("\n--- Teste: Pedidos com Valor > R$ 50,00 ---");
+        List<Pedido> pedidosCaros = pedidoRepository.buscarPedidosComValorAcimaDe(new BigDecimal("50.00"));
+        System.out.println("Resultado: " + pedidosCaros.size() + " pedidos encontrados.");
+        pedidosCaros.forEach(p -> System.out.println("  -> ID: " + p.getId() + " | Valor: " + p.getValorTotal()));
+
+        // Teste: Pedidos ENTREGUES nas últimas 24h
+        System.out.println("\n--- Teste: Pedidos ENTREGUES no último dia ---");
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime ontem = agora.minusDays(1);
+        List<Pedido> pedidosEntregues = pedidoRepository.buscarPorPeriodoEStatus(ontem, agora, Pedido.StatusPedido.ENTREGUE);
+        System.out.println("Resultado: " + pedidosEntregues.size() + " pedidos entregues encontrados.");
+        pedidosEntregues.forEach(p -> System.out.println("  -> ID: " + p.getId() + " | Status: " + p.getStatus()));
 
 
         System.out.println("\n--- VALIDAÇÃO DAS CONSULTAS CONCLUÍDA ---");

@@ -50,4 +50,15 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     // Pedidos pendentes (para cozinha)
     @Query("SELECT p FROM Pedido p WHERE p.status IN ('PENDENTE', 'CONFIRMADO', 'PREPARANDO') ORDER BY p.dataPedido ASC")
     List<Pedido> buscarPedidosEmAndamento();
+
+    // Relatório de pedidos com valor acima de X
+    @Query("SELECT p FROM Pedido p WHERE p.valorTotal > :valorMinimo ORDER BY p.valorTotal DESC")
+    List<Pedido> buscarPedidosComValorAcimaDe(@Param("valorMinimo") BigDecimal valorMinimo);
+
+    // Relatório de pedidos por período e status
+    @Query("SELECT p FROM Pedido p WHERE p.dataPedido BETWEEN :inicio AND :fim AND p.status = :status ORDER BY p.dataPedido DESC")
+    List<Pedido> buscarPorPeriodoEStatus(
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            @Param("status") StatusPedido status);
 }

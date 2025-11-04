@@ -105,6 +105,26 @@ public class PedidoController {
         return ResponseEntity.ok(pedidos);
     }
 
+    // --- INÍCIO DAS ADIÇÕES (ATIVIDADE 3) ---
+
+    // GET /api/pedidos/valor-acima?min=50.00
+    @GetMapping("/valor-acima")
+    public ResponseEntity<List<Pedido>> buscarValorAcima(@RequestParam BigDecimal min) {
+        List<Pedido> pedidos = pedidoService.buscarComValorAcimaDe(min);
+        return ResponseEntity.ok(pedidos);
+    }
+
+    // GET /api/pedidos/relatorio?inicio=...&fim=...&status=ENTREGUE
+    @GetMapping("/relatorio")
+    public ResponseEntity<List<Pedido>> buscarRelatorioPeriodoStatus(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim,
+            @RequestParam StatusPedido status) {
+        List<Pedido> pedidos = pedidoService.buscarPorPeriodoEStatus(inicio, fim, status);
+        return ResponseEntity.ok(pedidos);
+    }
+
+
     // PATCH /api/pedidos/{id}/status - Atualizar status
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
