@@ -1,14 +1,21 @@
 package com.deliverytech.delivery.controller;
 
+import com.deliverytech.delivery.dto.RestauranteRequestDTO;
+import com.deliverytech.delivery.dto.RestauranteResponseDTO;
 import com.deliverytech.delivery.entity.Restaurante;
 import com.deliverytech.delivery.service.RestauranteService;
+import jakarta.validation.Valid;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/restaurantes")
@@ -18,12 +25,16 @@ public class RestauranteController {
     @Autowired
     private RestauranteService restauranteService;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     // POST /api/restaurantes - Cadastrar restaurante
     @PostMapping
-    public ResponseEntity<?> cadastrar(@RequestBody Restaurante restaurante) {
+    public ResponseEntity<?> cadastrar(@Valid @RequestBody RestauranteRequestDTO restauranteDTO) {
         try {
-            Restaurante restauranteSalvo = restauranteService.cadastrar(restaurante);
-            return ResponseEntity.status(HttpStatus.CREATED).body(restauranteSalvo);
+            Restaurante restauranteSalvo = restauranteService.cadastrar(restauranteDTO);
+            RestauranteResponseDTO responseDTO = modelMapper.map(restauranteSalvo, RestauranteResponseDTO.class);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("erro", e.getMessage()));
@@ -32,9 +43,12 @@ public class RestauranteController {
 
     // GET /api/restaurantes - Listar todos os restaurantes ativos
     @GetMapping
-    public ResponseEntity<List<Restaurante>> listarTodos() {
+    public ResponseEntity<List<RestauranteResponseDTO>> listarTodos() {
         List<Restaurante> restaurantes = restauranteService.buscarTodos();
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/{id} - Buscar por ID
@@ -43,7 +57,8 @@ public class RestauranteController {
         Optional<Restaurante> restaurante = restauranteService.buscarPorId(id);
 
         if (restaurante.isPresent()) {
-            return ResponseEntity.ok(restaurante.get());
+            RestauranteResponseDTO responseDTO = modelMapper.map(restaurante.get(), RestauranteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("erro", "Restaurante não encontrado"));
@@ -51,37 +66,52 @@ public class RestauranteController {
 
     // GET /api/restaurantes/buscar?nome=Pizza - Buscar por nome
     @GetMapping("/buscar")
-    public ResponseEntity<List<Restaurante>> buscarPorNome(@RequestParam String nome) {
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarPorNome(@RequestParam String nome) {
         List<Restaurante> restaurantes = restauranteService.buscarPorNome(nome);
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/categoria/{categoria} - Buscar por categoria
     @GetMapping("/categoria/{categoria}")
-    public ResponseEntity<List<Restaurante>> buscarPorCategoria(@PathVariable String categoria) {
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarPorCategoria(@PathVariable String categoria) {
         List<Restaurante> restaurantes = restauranteService.buscarPorCategoria(categoria);
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/top-avaliados - Ordenados por avaliação
     @GetMapping("/top-avaliados")
-    public ResponseEntity<List<Restaurante>> buscarTopAvaliados() {
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarTopAvaliados() {
         List<Restaurante> restaurantes = restauranteService.buscarOrdenadosPorAvaliacao();
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/acima-media - Acima da média
     @GetMapping("/acima-media")
-    public ResponseEntity<List<Restaurante>> buscarAcimaMedia() {
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarAcimaMedia() {
         List<Restaurante> restaurantes = restauranteService.buscarAcimaMedia();
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/avaliacao?min=4.0 - Por avaliação mínima
     @GetMapping("/avaliacao")
-    public ResponseEntity<List<Restaurante>> buscarPorAvaliacao(@RequestParam Double min) {
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarPorAvaliacao(@RequestParam Double min) {
         List<Restaurante> restaurantes = restauranteService.buscarPorAvaliacaoMinima(min);
-        return ResponseEntity.ok(restaurantes);
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/restaurantes/categorias - Listar categorias disponíveis
@@ -93,10 +123,11 @@ public class RestauranteController {
 
     // PUT /api/restaurantes/{id} - Atualizar restaurante
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Restaurante restaurante) {
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @Valid @RequestBody RestauranteRequestDTO restauranteDTO) {
         try {
-            Restaurante restauranteAtualizado = restauranteService.atualizar(id, restaurante);
-            return ResponseEntity.ok(restauranteAtualizado);
+            Restaurante restauranteAtualizado = restauranteService.atualizar(id, restauranteDTO);
+            RestauranteResponseDTO responseDTO = modelMapper.map(restauranteAtualizado, RestauranteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("erro", e.getMessage()));
@@ -109,7 +140,8 @@ public class RestauranteController {
         try {
             Double novaAvaliacao = body.get("avaliacao");
             Restaurante restauranteAtualizado = restauranteService.atualizarAvaliacao(id, novaAvaliacao);
-            return ResponseEntity.ok(restauranteAtualizado);
+            RestauranteResponseDTO responseDTO = modelMapper.map(restauranteAtualizado, RestauranteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("erro", e.getMessage()));
@@ -134,6 +166,18 @@ public class RestauranteController {
         try {
             restauranteService.reativar(id);
             return ResponseEntity.ok(Map.of("mensagem", "Restaurante reativado com sucesso"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("erro", e.getMessage()));
+        }
+    }
+
+    // (Roteiro 4) GET /api/restaurantes/{id}/taxa-entrega/{cep}
+    @GetMapping("/{id}/taxa-entrega/{cep}")
+    public ResponseEntity<?> calcularTaxaEntrega(@PathVariable Long id, @PathVariable String cep) {
+        try {
+            BigDecimal taxa = restauranteService.calcularTaxaEntrega(id, cep);
+            return ResponseEntity.ok(Map.of("restauranteId", id, "cep", cep, "taxaCalculada", taxa));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("erro", e.getMessage()));

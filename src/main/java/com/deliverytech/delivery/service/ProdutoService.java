@@ -1,9 +1,11 @@
 package com.deliverytech.delivery.service;
 
+import com.deliverytech.delivery.dto.ProdutoRequestDTO; // Import
 import com.deliverytech.delivery.entity.Produto;
 import com.deliverytech.delivery.entity.Restaurante;
 import com.deliverytech.delivery.repository.ProdutoRepository;
 import com.deliverytech.delivery.repository.RestauranteRepository;
+import org.modelmapper.ModelMapper; // Import
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -19,25 +21,30 @@ public class ProdutoService {
     @Autowired
     private RestauranteRepository restauranteRepository;
 
-    // Cadastrar produto
-    public Produto cadastrar(Produto produto) {
-        validarProduto(produto);
+    @Autowired
+    private ModelMapper modelMapper; // Injetar ModelMapper
 
-        // Verificar se restaurante existe e está ativo
-        Optional<Restaurante> restaurante = restauranteRepository.findById(produto.getRestaurante().getId());
+    // Cadastrar produto (Recebe DTO)
+    public Produto cadastrar(ProdutoRequestDTO produtoDTO) {
+        // Validação do Roteiro 4: Validar restaurante existe
+        Optional<Restaurante> restaurante = restauranteRepository.findById(produtoDTO.getRestauranteId());
 
         if (restaurante.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + produto.getRestaurante().getId());
+            throw new RuntimeException("Restaurante não encontrado: " + produtoDTO.getRestauranteId());
         }
 
         if (!restaurante.get().getAtivo()) {
             throw new RuntimeException("Não é possível cadastrar produto para restaurante inativo");
         }
 
+        Produto produto = modelMapper.map(produtoDTO, Produto.class);
+        produto.setRestaurante(restaurante.get()); // Associa o restaurante
+
+        validarProduto(produto);
         return produtoRepository.save(produto);
     }
 
-    // Buscar todos os produtos disponíveis
+    // Buscar todos os produtos
     public List<Produto> buscarTodos() {
         return produtoRepository.findAll();
     }
@@ -47,7 +54,7 @@ public class ProdutoService {
         return produtoRepository.findById(id);
     }
 
-    // Buscar produtos por restaurante
+    // Buscar produtos por restaurante (apenas disponíveis)
     public List<Produto> buscarPorRestaurante(Long restauranteId) {
         return produtoRepository.findByRestauranteIdAndDisponivelTrue(restauranteId);
     }
@@ -62,38 +69,29 @@ public class ProdutoService {
         return produtoRepository.findByCategoriaAndDisponivelTrue(categoria);
     }
 
-    // Buscar por nome (contém)
+    // ... (outros métodos de busca inalterados: buscarPorNome, buscarPorFaixaPreco, etc.) ...
     public List<Produto> buscarPorNome(String nome) {
         return produtoRepository.findByNomeContainingIgnoreCase(nome);
     }
-
-    // Buscar por faixa de preço
     public List<Produto> buscarPorFaixaPreco(BigDecimal precoMin, BigDecimal precoMax) {
         return produtoRepository.findByPrecoBetween(precoMin, precoMax);
     }
-
-    // Buscar produtos de restaurante por categoria
     public List<Produto> buscarPorRestauranteECategoria(Long restauranteId, String categoria) {
         return produtoRepository.buscarPorRestauranteECategoria(restauranteId, categoria);
     }
-
-    // Buscar produtos ordenados por preço (mais barato primeiro)
     public List<Produto> buscarPorRestauranteOrdenadoPorPreco(Long restauranteId) {
         return produtoRepository.buscarPorRestauranteOrdenadoPorPreco(restauranteId);
     }
-
-    // Buscar por preço máximo
     public List<Produto> buscarPorPrecoMaximo(Long restauranteId, BigDecimal precoMax) {
         return produtoRepository.buscarPorRestauranteEPrecoMaximo(restauranteId, precoMax);
     }
-
-    // Buscar categorias disponíveis
     public List<String> buscarCategorias() {
         return produtoRepository.buscarCategoriasDisponiveis();
     }
 
-    // Atualizar produto
-    public Produto atualizar(Long id, Produto produtoAtualizado) {
+
+    // Atualizar produto (Recebe DTO)
+    public Produto atualizar(Long id, ProdutoRequestDTO produtoAtualizadoDTO) {
         Optional<Produto> produtoExistente = produtoRepository.findById(id);
 
         if (produtoExistente.isEmpty()) {
@@ -102,11 +100,11 @@ public class ProdutoService {
 
         Produto produto = produtoExistente.get();
 
-        // Atualizar campos (não permitir mudança de restaurante)
-        produto.setNome(produtoAtualizado.getNome());
-        produto.setDescricao(produtoAtualizado.getDescricao());
-        produto.setPreco(produtoAtualizado.getPreco());
-        produto.setCategoria(produtoAtualizado.getCategoria());
+        // Mapeia DTO para a entidade (exceto ID do restaurante, que não deve mudar)
+        modelMapper.map(produtoAtualizadoDTO, produto);
+
+        // Reforça que o restaurante não foi alterado pelo DTO
+        produto.setRestaurante(produtoExistente.get().getRestaurante());
 
         validarProduto(produto);
 
@@ -126,17 +124,13 @@ public class ProdutoService {
         produtoRepository.save(produtoEntity);
     }
 
-    // Tornar indisponível (soft delete)
+    // ... (métodos tornarIndisponivel, tornarDisponivel, deletar inalterados) ...
     public void tornarIndisponivel(Long id) {
         alterarDisponibilidade(id, false);
     }
-
-    // Tornar disponível
     public void tornarDisponivel(Long id) {
         alterarDisponibilidade(id, true);
     }
-
-    // Deletar produto (hard delete)
     public void deletar(Long id) {
         if (!produtoRepository.existsById(id)) {
             throw new RuntimeException("Produto não encontrado: " + id);
@@ -146,22 +140,19 @@ public class ProdutoService {
 
     // Validações privadas
     private void validarProduto(Produto produto) {
+
         if (produto.getNome() == null || produto.getNome().trim().isEmpty()) {
             throw new RuntimeException("Nome do produto é obrigatório");
         }
-
         if (produto.getPreco() == null) {
             throw new RuntimeException("Preço é obrigatório");
         }
-
         if (produto.getPreco().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Preço deve ser maior que zero");
         }
-
         if (produto.getCategoria() == null || produto.getCategoria().trim().isEmpty()) {
             throw new RuntimeException("Categoria é obrigatória");
         }
-
         if (produto.getRestaurante() == null || produto.getRestaurante().getId() == null) {
             throw new RuntimeException("Restaurante é obrigatório");
         }

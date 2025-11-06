@@ -1,7 +1,9 @@
 package com.deliverytech.delivery.service;
 
+import com.deliverytech.delivery.dto.ClienteRequestDTO; // NOVO
 import com.deliverytech.delivery.entity.Cliente;
 import com.deliverytech.delivery.repository.ClienteRepository;
+import org.modelmapper.ModelMapper; // NOVO
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -13,12 +15,18 @@ public class ClienteService {
     @Autowired
     private ClienteRepository clienteRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     // Cadastrar novo cliente
-    public Cliente cadastrar(Cliente cliente) {
+    public Cliente cadastrar(ClienteRequestDTO clienteDTO) {
         // Validação: email único
-        if (clienteRepository.existsByEmail(cliente.getEmail())) {
-            throw new RuntimeException("Email já cadastrado: " + cliente.getEmail());
+        if (clienteRepository.existsByEmail(clienteDTO.getEmail())) {
+            throw new RuntimeException("Email já cadastrado: " + clienteDTO.getEmail());
         }
+
+        // Mapeia DTO para Entidade
+        Cliente cliente = modelMapper.map(clienteDTO, Cliente.class);
 
         // Validações básicas
         validarCliente(cliente);
@@ -47,28 +55,24 @@ public class ClienteService {
     }
 
     // Atualizar cliente
-    public Cliente atualizar(Long id, Cliente clienteAtualizado) {
+    public Cliente atualizar(Long id, ClienteRequestDTO clienteAtualizadoDTO) { // MODIFICADO
         Optional<Cliente> clienteExistente = clienteRepository.findById(id);
 
         if (clienteExistente.isEmpty()) {
-            throw new RuntimeException("Cliente não encontrado: " + id);
+            throw new RuntimeException("Cliente não encontrado: "+ id);
         }
 
         Cliente cliente = clienteExistente.get();
 
         // Verificar se email não está sendo usado por outro cliente
-        if (!cliente.getEmail().equals(clienteAtualizado.getEmail())) {
-            if (clienteRepository.existsByEmail(clienteAtualizado.getEmail())) {
-                throw new RuntimeException("Email já cadastrado: " + clienteAtualizado.getEmail());
+        if (!cliente.getEmail().equals(clienteAtualizadoDTO.getEmail())) {
+            if (clienteRepository.existsByEmail(clienteAtualizadoDTO.getEmail())) {
+                throw new RuntimeException("Email já cadastrado: " + clienteAtualizadoDTO.getEmail());
             }
         }
 
-        // Atualizar campos
-        cliente.setNome(clienteAtualizado.getNome());
-        cliente.setEmail(clienteAtualizado.getEmail());
-        cliente.setTelefone(clienteAtualizado.getTelefone());
-        cliente.setEndereco(clienteAtualizado.getEndereco());
-
+        // Atualizar campos (Mapeia DTO para a entidade existente)
+        modelMapper.map(clienteAtualizadoDTO, cliente);
         validarCliente(cliente);
 
         return clienteRepository.save(cliente);
@@ -76,6 +80,7 @@ public class ClienteService {
 
     // Inativar cliente (soft delete)
     public void inativar(Long id) {
+        // ... (método inalterado)
         Optional<Cliente> cliente = clienteRepository.findById(id);
 
         if (cliente.isEmpty()) {

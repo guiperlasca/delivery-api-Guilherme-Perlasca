@@ -1,7 +1,9 @@
 package com.deliverytech.delivery.service;
 
+import com.deliverytech.delivery.dto.RestauranteRequestDTO;
 import com.deliverytech.delivery.entity.Restaurante;
 import com.deliverytech.delivery.repository.RestauranteRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -14,15 +16,19 @@ public class RestauranteService {
     @Autowired
     private RestauranteRepository restauranteRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     // Cadastrar restaurante
-    public Restaurante cadastrar(Restaurante restaurante) {
-        validarRestaurante(restaurante);
+    public Restaurante cadastrar(RestauranteRequestDTO restauranteDTO) {
+        Restaurante restaurante = modelMapper.map(restauranteDTO, Restaurante.class);
 
         // Definir avaliação inicial se não informada
         if (restaurante.getAvaliacao() == null) {
             restaurante.setAvaliacao(BigDecimal.valueOf(5.0));
         }
 
+        validarRestaurante(restaurante);
         return restauranteRepository.save(restaurante);
     }
 
@@ -67,7 +73,7 @@ public class RestauranteService {
     }
 
     // Atualizar restaurante
-    public Restaurante atualizar(Long id, Restaurante restauranteAtualizado) {
+    public Restaurante atualizar(Long id, RestauranteRequestDTO restauranteAtualizadoDTO) {
         Optional<Restaurante> restauranteExistente = restauranteRepository.findById(id);
 
         if (restauranteExistente.isEmpty()) {
@@ -75,17 +81,7 @@ public class RestauranteService {
         }
 
         Restaurante restaurante = restauranteExistente.get();
-
-        // Atualizar campos
-        restaurante.setNome(restauranteAtualizado.getNome());
-        restaurante.setCategoria(restauranteAtualizado.getCategoria());
-        restaurante.setEndereco(restauranteAtualizado.getEndereco());
-
-        // Manter avaliação se não informada
-        if (restauranteAtualizado.getAvaliacao() != null) {
-            restaurante.setAvaliacao(restauranteAtualizado.getAvaliacao());
-        }
-
+        modelMapper.map(restauranteAtualizadoDTO, restaurante);
         validarRestaurante(restaurante);
 
         return restauranteRepository.save(restaurante);
@@ -135,16 +131,33 @@ public class RestauranteService {
         restauranteRepository.save(restauranteEntity);
     }
 
+    // (Roteiro 4) Calcula a taxa de entrega (Lógica simulada)
+    public BigDecimal calcularTaxaEntrega(Long restauranteId, String cep) {
+        Optional<Restaurante> restauranteOpt = restauranteRepository.findById(restauranteId);
+
+        if (restauranteOpt.isEmpty()) {
+            throw new RuntimeException("Restaurante não encontrado: " + restauranteId);
+        }
+
+        BigDecimal taxaPadrao = restauranteOpt.get().getTaxaEntrega() != null ? restauranteOpt.get().getTaxaEntrega() : BigDecimal.valueOf(10);
+
+        // Lógica simulada
+        if (cep != null && cep.endsWith("0")) {
+            return BigDecimal.valueOf(5.00);
+        }
+
+        return taxaPadrao;
+    }
+
+
     // Validações privadas
     private void validarRestaurante(Restaurante restaurante) {
         if (restaurante.getNome() == null || restaurante.getNome().trim().isEmpty()) {
             throw new RuntimeException("Nome do restaurante é obrigatório");
         }
-
         if (restaurante.getCategoria() == null || restaurante.getCategoria().trim().isEmpty()) {
             throw new RuntimeException("Categoria é obrigatória");
         }
-
         if (restaurante.getAvaliacao() != null) {
             if (restaurante.getAvaliacao().compareTo(BigDecimal.ZERO) < 0 ||
                     restaurante.getAvaliacao().compareTo(BigDecimal.valueOf(5)) > 0) {

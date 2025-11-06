@@ -1,7 +1,11 @@
 package com.deliverytech.delivery.controller;
 
+import com.deliverytech.delivery.dto.ClienteRequestDTO;
+import com.deliverytech.delivery.dto.ClienteResponseDTO;
 import com.deliverytech.delivery.entity.Cliente;
 import com.deliverytech.delivery.service.ClienteService;
+import jakarta.validation.Valid;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -18,12 +23,17 @@ public class ClienteController {
     @Autowired
     private ClienteService clienteService;
 
-    // POST /api/clientes - Cadastrar cliente
+    @Autowired
+    private ModelMapper modelMapper;
+
+    // POST /api/clientes - Cadastrar cliente (AGORA USA DTOs e @Valid)
     @PostMapping
-    public ResponseEntity<?> cadastrar(@RequestBody Cliente cliente) {
+    public ResponseEntity<?> cadastrar(@Valid @RequestBody ClienteRequestDTO clienteDTO) {
         try {
-            Cliente clienteSalvo = clienteService.cadastrar(cliente);
-            return ResponseEntity.status(HttpStatus.CREATED).body(clienteSalvo);
+            Cliente clienteSalvo = clienteService.cadastrar(clienteDTO);
+            // Converte a entidade salva para o DTO de Resposta
+            ClienteResponseDTO responseDTO = modelMapper.map(clienteSalvo, ClienteResponseDTO.class);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("erro", e.getMessage()));
@@ -32,9 +42,13 @@ public class ClienteController {
 
     // GET /api/clientes - Listar todos os clientes ativos
     @GetMapping
-    public ResponseEntity<List<Cliente>> listarTodos() {
+    public ResponseEntity<List<ClienteResponseDTO>> listarTodos() {
         List<Cliente> clientes = clienteService.buscarTodos();
-        return ResponseEntity.ok(clientes);
+        // Converte a lista de entidades para uma lista de DTOs
+        List<ClienteResponseDTO> responseDTOs = clientes.stream()
+                .map(cliente -> modelMapper.map(cliente, ClienteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     // GET /api/clientes/{id} - Buscar por ID
@@ -43,26 +57,31 @@ public class ClienteController {
         Optional<Cliente> cliente = clienteService.buscarPorId(id);
 
         if (cliente.isPresent()) {
-            return ResponseEntity.ok(cliente.get());
+            ClienteResponseDTO responseDTO = modelMapper.map(cliente.get(), ClienteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("erro", "Cliente não encontrado"));
     }
 
-    // GET /api/clientes/buscar?nome=João - Buscar por nome
+    // GET /api/clientes/buscar?nome=João
     @GetMapping("/buscar")
-    public ResponseEntity<List<Cliente>> buscarPorNome(@RequestParam String nome) {
+    public ResponseEntity<List<ClienteResponseDTO>> buscarPorNome(@RequestParam String nome) {
         List<Cliente> clientes = clienteService.buscarPorNome(nome);
-        return ResponseEntity.ok(clientes);
+        List<ClienteResponseDTO> responseDTOs = clientes.stream()
+                .map(cliente -> modelMapper.map(cliente, ClienteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
-    // GET /api/clientes/email/{email} - Buscar por email
+    // GET /api/clientes/email/{email}
     @GetMapping("/email/{email}")
     public ResponseEntity<?> buscarPorEmail(@PathVariable String email) {
         Optional<Cliente> cliente = clienteService.buscarPorEmail(email);
 
         if (cliente.isPresent()) {
-            return ResponseEntity.ok(cliente.get());
+            ClienteResponseDTO responseDTO = modelMapper.map(cliente.get(), ClienteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("erro", "Cliente não encontrado com este email"));
@@ -70,10 +89,11 @@ public class ClienteController {
 
     // PUT /api/clientes/{id} - Atualizar cliente
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody Cliente cliente) {
+    public ResponseEntity<?> atualizar(@PathVariable Long id, @Valid @RequestBody ClienteRequestDTO clienteDTO) {
         try {
-            Cliente clienteAtualizado = clienteService.atualizar(id, cliente);
-            return ResponseEntity.ok(clienteAtualizado);
+            Cliente clienteAtualizado = clienteService.atualizar(id, clienteDTO);
+            ClienteResponseDTO responseDTO = modelMapper.map(clienteAtualizado, ClienteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO); // MODIFICADO
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("erro", e.getMessage()));
@@ -83,6 +103,7 @@ public class ClienteController {
     // DELETE /api/clientes/{id} - Inativar cliente (soft delete)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> inativar(@PathVariable Long id) {
+        // ... (método inalterado)
         try {
             clienteService.inativar(id);
             return ResponseEntity.ok(Map.of("mensagem", "Cliente inativado com sucesso"));
@@ -95,6 +116,7 @@ public class ClienteController {
     // PATCH /api/clientes/{id}/reativar - Reativar cliente
     @PatchMapping("/{id}/reativar")
     public ResponseEntity<?> reativar(@PathVariable Long id) {
+        // ... (método inalterado)
         try {
             clienteService.reativar(id);
             return ResponseEntity.ok(Map.of("mensagem", "Cliente reativado com sucesso"));
@@ -107,6 +129,7 @@ public class ClienteController {
     // GET /api/clientes/estatisticas - Estatísticas básicas
     @GetMapping("/estatisticas")
     public ResponseEntity<?> estatisticas() {
+        // ... (método inalterado)
         Long totalAtivos = clienteService.contarAtivos();
         return ResponseEntity.ok(Map.of(
                 "totalClientesAtivos", totalAtivos,
