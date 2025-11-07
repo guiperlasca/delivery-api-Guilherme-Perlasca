@@ -37,7 +37,7 @@ public class DataLoader implements CommandLineRunner {
         System.out.println("--- INICIANDO VALIDAÇÃO DAS CONSULTAS (ATIVIDADE 2) ---");
 
         // Cenário 1: Busca de Cliente por Email
-        System.out.println("\n--- 🔎 Cenário 1: Buscando Cliente 'batman@wayneenterprises.com' ---");
+        System.out.println("\n--- Cenário 1: Buscando Cliente 'batman@wayneenterprises.com' ---");
         Optional<Cliente> clienteOpt = clienteRepository.findByEmail("batman@wayneenterprises.com");
         if (clienteOpt.isPresent()) {
             System.out.println("Resultado: Cliente encontrado -> " + clienteOpt.get().getNome());
