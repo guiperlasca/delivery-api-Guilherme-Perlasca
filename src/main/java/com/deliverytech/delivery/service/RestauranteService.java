@@ -2,13 +2,14 @@ package com.deliverytech.delivery.service;
 
 import com.deliverytech.delivery.dto.RestauranteRequestDTO;
 import com.deliverytech.delivery.entity.Restaurante;
+import com.deliverytech.delivery.exception.BusinessException;
+import com.deliverytech.delivery.exception.EntityNotFoundException;
 import com.deliverytech.delivery.repository.RestauranteRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,70 +25,25 @@ public class RestauranteService {
     public Restaurante cadastrar(RestauranteRequestDTO restauranteDTO) {
         Restaurante restaurante = modelMapper.map(restauranteDTO, Restaurante.class);
 
-        // Definir avaliação inicial se não informada
         if (restaurante.getAvaliacao() == null) {
             restaurante.setAvaliacao(BigDecimal.valueOf(5.0));
         }
 
-        validarRestaurante(restaurante);
+        validarRestaurante(restaurante); // Validações de negócio
         return restauranteRepository.save(restaurante);
     }
 
-    // Buscar todos os restaurantes ativos
-    public List<Restaurante> buscarTodos() {
-        return restauranteRepository.findByAtivoTrue();
-    }
-
-    // Buscar restaurante por ID
-    public Optional<Restaurante> buscarPorId(Long id) {
-        return restauranteRepository.findById(id);
-    }
-
-    // Buscar por nome
-    public List<Restaurante> buscarPorNome(String nome) {
-        return restauranteRepository.findByNomeContainingIgnoreCase(nome);
-    }
-
-    // Buscar por categoria
-    public List<Restaurante> buscarPorCategoria(String categoria) {
-        return restauranteRepository.findByCategoriaAndAtivoTrue(categoria);
-    }
-
-    // Buscar ordenados por avaliação (melhores primeiro)
-    public List<Restaurante> buscarOrdenadosPorAvaliacao() {
-        return restauranteRepository.buscarAtivosOrdenadosPorAvaliacao();
-    }
-
-    // Buscar restaurantes acima da média
-    public List<Restaurante> buscarAcimaMedia() {
-        return restauranteRepository.buscarAcimaMediaAvaliacao();
-    }
-
-    // Buscar por avaliação mínima
-    public List<Restaurante> buscarPorAvaliacaoMinima(Double avaliacaoMinima) {
-        return restauranteRepository.findByAvaliacaoGreaterThanEqual(BigDecimal.valueOf(avaliacaoMinima));
-    }
-
-    // Buscar categorias disponíveis
-    public List<String> buscarCategorias() {
-        return restauranteRepository.buscarCategoriasDisponiveis();
-    }
-
-    public List<Restaurante> buscarProximos(String cep) {
-        System.out.println("WARN: Chamada ao método stub buscarProximos(). Implementar lógica de busca por CEP.");
-        // Retorna os 5 primeiros ativos como simulação
-        return restauranteRepository.findByAtivoTrue().stream().limit(5).collect(Collectors.toList());
+    // Buscar por ID
+    public Restaurante buscarPorId(Long id) {
+        return restauranteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Restaurante não encontrado: " + id));
     }
 
     // Atualizar restaurante
     public Restaurante atualizar(Long id, RestauranteRequestDTO restauranteAtualizadoDTO) {
-        Optional<Restaurante> restauranteExistente = restauranteRepository.findById(id);
+        // buscaPorId já trata o 404
+        Restaurante restaurante = buscarPorId(id);
 
-        if (restauranteExistente.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + id);
-        }
-
-        Restaurante restaurante = restauranteExistente.get();
         modelMapper.map(restauranteAtualizadoDTO, restaurante);
         validarRestaurante(restaurante);
 
@@ -96,88 +52,85 @@ public class RestauranteService {
 
     // Atualizar avaliação
     public Restaurante atualizarAvaliacao(Long id, Double novaAvaliacao) {
-        Optional<Restaurante> restaurante = restauranteRepository.findById(id);
+        Restaurante restaurante = buscarPorId(id);
 
-        if (restaurante.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + id);
+        if (novaAvaliacao == null || novaAvaliacao < 0 || novaAvaliacao > 5) {
+            throw new BusinessException("Avaliação deve estar entre 0 e 5");
         }
 
-        if (novaAvaliacao < 0 || novaAvaliacao > 5) {
-            throw new RuntimeException("Avaliação deve estar entre 0 e 5");
-        }
-
-        Restaurante restauranteEntity = restaurante.get();
-        restauranteEntity.setAvaliacao(BigDecimal.valueOf(novaAvaliacao));
-
-        return restauranteRepository.save(restauranteEntity);
-    }
-
-    public Restaurante alterarStatus(Long id, boolean novoStatus) {
-        Restaurante restaurante = restauranteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado: " + id));
-
-        restaurante.setAtivo(novoStatus);
+        restaurante.setAvaliacao(BigDecimal.valueOf(novaAvaliacao));
         return restauranteRepository.save(restaurante);
     }
 
     // Inativar restaurante
     public void inativar(Long id) {
-        Optional<Restaurante> restaurante = restauranteRepository.findById(id);
-
-        if (restaurante.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + id);
-        }
-
-        Restaurante restauranteEntity = restaurante.get();
-        restauranteEntity.setAtivo(false);
-        restauranteRepository.save(restauranteEntity);
+        Restaurante restaurante = buscarPorId(id);
+        restaurante.setAtivo(false);
+        restauranteRepository.save(restaurante);
     }
 
     // Reativar restaurante
     public void reativar(Long id) {
-        Optional<Restaurante> restaurante = restauranteRepository.findById(id);
+        Restaurante restaurante = buscarPorId(id);
+        restaurante.setAtivo(true);
+        restauranteRepository.save(restaurante);
+    }
 
-        if (restaurante.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + id);
-        }
-
-        Restaurante restauranteEntity = restaurante.get();
-        restauranteEntity.setAtivo(true);
-        restauranteRepository.save(restauranteEntity);
+    // (Roteiro 5, Atividade 1.1)
+    public Restaurante alterarStatus(Long id, boolean novoStatus) {
+        Restaurante restaurante = buscarPorId(id);
+        restaurante.setAtivo(novoStatus);
+        return restauranteRepository.save(restaurante);
     }
 
     // (Roteiro 4) Calcula a taxa de entrega (Lógica simulada)
     public BigDecimal calcularTaxaEntrega(Long restauranteId, String cep) {
-        Optional<Restaurante> restauranteOpt = restauranteRepository.findById(restauranteId);
+        Restaurante restaurante = buscarPorId(restauranteId);
 
-        if (restauranteOpt.isEmpty()) {
-            throw new RuntimeException("Restaurante não encontrado: " + restauranteId);
-        }
+        BigDecimal taxaPadrao = restaurante.getTaxaEntrega() != null ? restaurante.getTaxaEntrega() : BigDecimal.valueOf(10);
 
-        BigDecimal taxaPadrao = restauranteOpt.get().getTaxaEntrega() != null ? restauranteOpt.get().getTaxaEntrega() : BigDecimal.valueOf(10);
-
-        // Lógica simulada
         if (cep != null && cep.endsWith("0")) {
             return BigDecimal.valueOf(5.00);
         }
-
         return taxaPadrao;
     }
 
-
     // Validações privadas
     private void validarRestaurante(Restaurante restaurante) {
-        if (restaurante.getNome() == null || restaurante.getNome().trim().isEmpty()) {
-            throw new RuntimeException("Nome do restaurante é obrigatório");
-        }
-        if (restaurante.getCategoria() == null || restaurante.getCategoria().trim().isEmpty()) {
-            throw new RuntimeException("Categoria é obrigatória");
-        }
+        // Validações de @Valid cuidam de "NotBlank", "NotNull"
+        // Focamos nas regras de negócio
         if (restaurante.getAvaliacao() != null) {
             if (restaurante.getAvaliacao().compareTo(BigDecimal.ZERO) < 0 ||
                     restaurante.getAvaliacao().compareTo(BigDecimal.valueOf(5)) > 0) {
-                throw new RuntimeException("Avaliação deve estar entre 0 e 5");
+                throw new BusinessException("Avaliação deve estar entre 0 e 5");
             }
         }
+    }
+
+    // Métodos de busca (sem alterações, apenas chamando o repository)
+    public List<Restaurante> buscarTodos() {
+        return restauranteRepository.findByAtivoTrue();
+    }
+    public List<Restaurante> buscarPorNome(String nome) {
+        return restauranteRepository.findByNomeContainingIgnoreCase(nome);
+    }
+    public List<Restaurante> buscarPorCategoria(String categoria) {
+        return restauranteRepository.findByCategoriaAndAtivoTrue(categoria);
+    }
+    public List<Restaurante> buscarOrdenadosPorAvaliacao() {
+        return restauranteRepository.buscarAtivosOrdenadosPorAvaliacao();
+    }
+    public List<Restaurante> buscarAcimaMedia() {
+        return restauranteRepository.buscarAcimaMediaAvaliacao();
+    }
+    public List<Restaurante> buscarPorAvaliacaoMinima(Double avaliacaoMinima) {
+        return restauranteRepository.findByAvaliacaoGreaterThanEqual(BigDecimal.valueOf(avaliacaoMinima));
+    }
+    public List<String> buscarCategorias() {
+        return restauranteRepository.buscarCategoriasDisponiveis();
+    }
+    public List<Restaurante> buscarProximos(String cep) {
+        System.out.println("WARN: Chamada ao método stub buscarProximos(). Implementar lógica de busca por CEP.");
+        return restauranteRepository.findByAtivoTrue().stream().limit(5).collect(Collectors.toList());
     }
 }
