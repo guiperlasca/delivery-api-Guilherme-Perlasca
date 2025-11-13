@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class RestauranteService {
@@ -72,6 +73,12 @@ public class RestauranteService {
         return restauranteRepository.buscarCategoriasDisponiveis();
     }
 
+    public List<Restaurante> buscarProximos(String cep) {
+        System.out.println("WARN: Chamada ao método stub buscarProximos(). Implementar lógica de busca por CEP.");
+        // Retorna os 5 primeiros ativos como simulação
+        return restauranteRepository.findByAtivoTrue().stream().limit(5).collect(Collectors.toList());
+    }
+
     // Atualizar restaurante
     public Restaurante atualizar(Long id, RestauranteRequestDTO restauranteAtualizadoDTO) {
         Optional<Restaurante> restauranteExistente = restauranteRepository.findById(id);
@@ -103,6 +110,14 @@ public class RestauranteService {
         restauranteEntity.setAvaliacao(BigDecimal.valueOf(novaAvaliacao));
 
         return restauranteRepository.save(restauranteEntity);
+    }
+
+    public Restaurante alterarStatus(Long id, boolean novoStatus) {
+        Restaurante restaurante = restauranteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado: " + id));
+
+        restaurante.setAtivo(novoStatus);
+        return restauranteRepository.save(restaurante);
     }
 
     // Inativar restaurante

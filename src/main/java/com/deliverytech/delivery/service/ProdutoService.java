@@ -1,6 +1,7 @@
 package com.deliverytech.delivery.service;
 
 import com.deliverytech.delivery.dto.ProdutoRequestDTO; // Import
+import com.deliverytech.delivery.dto.ProdutoResponseDTO;
 import com.deliverytech.delivery.entity.Produto;
 import com.deliverytech.delivery.entity.Restaurante;
 import com.deliverytech.delivery.repository.ProdutoRepository;
@@ -9,6 +10,7 @@ import org.modelmapper.ModelMapper; // Import
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -87,6 +89,20 @@ public class ProdutoService {
     }
     public List<String> buscarCategorias() {
         return produtoRepository.buscarCategoriasDisponiveis();
+    }
+    public List<ProdutoResponseDTO> getTopProdutosVendidos() {
+
+
+        System.out.println("WARN: Chamada ao método stub getTopProdutosVendidos(). Implementar lógica de agregação.");
+
+
+        Optional<Produto> p1 = produtoRepository.findById(1L);
+        if (p1.isPresent()) {
+            ProdutoResponseDTO dto = modelMapper.map(p1.get(), ProdutoResponseDTO.class);
+            dto.setRestauranteId(p1.get().getRestaurante().getId());
+            return List.of(dto);
+        }
+        return new ArrayList<>();
     }
 
 

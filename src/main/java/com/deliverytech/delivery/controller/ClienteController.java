@@ -126,14 +126,4 @@ public class ClienteController {
         }
     }
 
-    // GET /api/clientes/estatisticas - Estatísticas básicas
-    @GetMapping("/estatisticas")
-    public ResponseEntity<?> estatisticas() {
-        // ... (método inalterado)
-        Long totalAtivos = clienteService.contarAtivos();
-        return ResponseEntity.ok(Map.of(
-                "totalClientesAtivos", totalAtivos,
-                "timestamp", java.time.LocalDateTime.now()
-        ));
-    }
 }

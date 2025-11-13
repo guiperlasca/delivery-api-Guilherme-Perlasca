@@ -43,8 +43,25 @@ public class RestauranteController {
 
     // GET /api/restaurantes - Listar todos os restaurantes ativos
     @GetMapping
-    public ResponseEntity<List<RestauranteResponseDTO>> listarTodos() {
-        List<Restaurante> restaurantes = restauranteService.buscarTodos();
+    public ResponseEntity<List<RestauranteResponseDTO>> listarTodos(
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false, defaultValue = "true") Boolean ativo) {
+
+        List<Restaurante> restaurantes;
+
+        if (categoria != null) {
+            restaurantes = restauranteService.buscarPorCategoria(categoria)
+                    .stream()
+                    .filter(r -> r.getAtivo().equals(ativo))
+                    .collect(Collectors.toList());
+        } else {
+            if (ativo) {
+                restaurantes = restauranteService.buscarTodos();
+            } else {
+                restaurantes = restauranteService.buscarTodos();
+            }
+        }
+
         List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
                 .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
                 .collect(Collectors.toList());
@@ -172,7 +189,7 @@ public class RestauranteController {
         }
     }
 
-    // (Roteiro 4) GET /api/restaurantes/{id}/taxa-entrega/{cep}
+    // GET /api/restaurantes/{id}/taxa-entrega/{cep}
     @GetMapping("/{id}/taxa-entrega/{cep}")
     public ResponseEntity<?> calcularTaxaEntrega(@PathVariable Long id, @PathVariable String cep) {
         try {
@@ -182,5 +199,33 @@ public class RestauranteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("erro", e.getMessage()));
         }
+    }
+
+    // PATCH /api/restaurantes/{id}/status - Ativar/desativar
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> alterarStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+        try {
+            Boolean novoStatus = body.get("ativo");
+            if (novoStatus == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("erro", "Corpo da requisição deve conter 'ativo: true|false'"));
+            }
+            Restaurante restauranteAtualizado = restauranteService.alterarStatus(id, novoStatus);
+            RestauranteResponseDTO responseDTO = modelMapper.map(restauranteAtualizado, RestauranteResponseDTO.class);
+            return ResponseEntity.ok(responseDTO);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("erro", e.getMessage()));
+        }
+    }
+
+    // GET /api/restaurantes/proximos/{cep} - Restaurantes próximos
+    @GetMapping("/proximos/{cep}")
+    public ResponseEntity<List<RestauranteResponseDTO>> buscarProximos(@PathVariable String cep) {
+        List<Restaurante> restaurantes = restauranteService.buscarProximos(cep); // Método Stub
+        List<RestauranteResponseDTO> responseDTOs = restaurantes.stream()
+                .map(r -> modelMapper.map(r, RestauranteResponseDTO.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 }
