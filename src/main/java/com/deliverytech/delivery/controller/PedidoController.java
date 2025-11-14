@@ -4,7 +4,14 @@ import com.deliverytech.delivery.dto.PedidoRequestDTO;
 import com.deliverytech.delivery.dto.PedidoResponseDTO;
 import com.deliverytech.delivery.entity.Pedido;
 import com.deliverytech.delivery.entity.Pedido.StatusPedido;
+import com.deliverytech.delivery.exception.BusinessException;
 import com.deliverytech.delivery.service.PedidoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,12 +24,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api") // Rota base /api
+@RequestMapping("/api")
 @CrossOrigin(origins = "*")
+@Tag(name = "Pedidos", description = "Operações para gerenciamento de pedidos")
 public class PedidoController {
 
     @Autowired
@@ -31,7 +38,6 @@ public class PedidoController {
     @Autowired
     private ModelMapper modelMapper;
 
-    // Mapeamento auxiliar para Entidade -> DTO Response
     private PedidoResponseDTO convertToResponseDTO(Pedido pedido) {
         PedidoResponseDTO dto = modelMapper.map(pedido, PedidoResponseDTO.class);
         dto.setClienteId(pedido.getCliente().getId());
@@ -39,40 +45,36 @@ public class PedidoController {
         return dto;
     }
 
-    /**
-     * POST /api/pedidos - Criar pedido
-     */
     @PostMapping("/pedidos")
-    public ResponseEntity<?> criarPedido(@Valid @RequestBody PedidoRequestDTO pedidoDTO) {
-        try {
-            Pedido pedido = pedidoService.criarPedido(pedidoDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(convertToResponseDTO(pedido));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Criar novo pedido")
+    @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso",
+            content = @Content(schema = @Schema(implementation = PedidoResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Dados inválidos (ex: sem itens)")
+    @ApiResponse(responseCode = "404", description = "Cliente, Restaurante ou Produto não encontrado")
+    @ApiResponse(responseCode = "422", description = "Regra de negócio violada (ex: cliente inativo)")
+    public ResponseEntity<PedidoResponseDTO> criarPedido(@Valid @RequestBody PedidoRequestDTO pedidoDTO) {
+        Pedido pedido = pedidoService.criarPedido(pedidoDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToResponseDTO(pedido));
     }
 
-    /**
-     * POST /api/pedidos/calcular - Calcular total (sem salvar)
-     */
     @PostMapping("/pedidos/calcular")
-    public ResponseEntity<?> calcularTotal(@Valid @RequestBody PedidoRequestDTO pedidoDTO) {
-        try {
-            BigDecimal total = pedidoService.calcularTotalPedido(pedidoDTO);
-            return ResponseEntity.ok(Map.of("valorTotalCalculado", total));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Calcular total de um pedido (sem salvar)")
+    @ApiResponse(responseCode = "200", description = "Total calculado")
+    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    @ApiResponse(responseCode = "404", description = "Restaurante ou Produto não encontrado")
+    @ApiResponse(responseCode = "422", description = "Produto indisponível")
+    public ResponseEntity<Map<String, BigDecimal>> calcularTotal(@Valid @RequestBody PedidoRequestDTO pedidoDTO) {
+        BigDecimal total = pedidoService.calcularTotalPedido(pedidoDTO);
+        return ResponseEntity.ok(Map.of("valorTotalCalculado", total));
     }
 
-    /**
-     * GET /api/pedidos - Listar todos os pedidos com filtros
-     */
     @GetMapping("/pedidos")
+    @Operation(summary = "Listar todos os pedidos", description = "Permite filtrar por status ou data.")
+    @ApiResponse(responseCode = "200", description = "Lista de pedidos")
     public ResponseEntity<List<PedidoResponseDTO>> listarTodos(
+            @Parameter(description = "Filtrar por status", example = "PENDENTE")
             @RequestParam(required = false) Pedido.StatusPedido status,
+            @Parameter(description = "Filtrar por data (YYYY-MM-DD)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
 
         List<Pedido> pedidos;
@@ -93,25 +95,21 @@ public class PedidoController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * GET /api/pedidos/{id} - Buscar por ID
-     */
     @GetMapping("/pedidos/{id}")
-    public ResponseEntity<?> buscarPorId(@PathVariable Long id) {
-        Optional<Pedido> pedido = pedidoService.buscarPorId(id);
-
-        if (pedido.isPresent()) {
-            return ResponseEntity.ok(convertToResponseDTO(pedido.get()));
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("erro", "Pedido não encontrado"));
+    @Operation(summary = "Buscar pedido por ID")
+    @ApiResponse(responseCode = "200", description = "Pedido encontrado",
+            content = @Content(schema = @Schema(implementation = PedidoResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Pedido não encontrado")
+    public ResponseEntity<PedidoResponseDTO> buscarPorId(@Parameter(description = "ID do pedido") @PathVariable Long id) {
+        Pedido pedido = pedidoService.buscarPorId(id);
+        return ResponseEntity.ok(convertToResponseDTO(pedido));
     }
 
-    /**
-     * GET /api/clientes/{clienteId}/pedidos - Histórico do cliente
-     */
     @GetMapping("/clientes/{clienteId}/pedidos")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarPorCliente(@PathVariable Long clienteId) {
+    @Operation(summary = "Buscar histórico de pedidos de um cliente")
+    @ApiResponse(responseCode = "200", description = "Lista de pedidos")
+    public ResponseEntity<List<PedidoResponseDTO>> buscarPorCliente(
+            @Parameter(description = "ID do cliente") @PathVariable Long clienteId) {
         List<Pedido> pedidos = pedidoService.buscarPorCliente(clienteId);
         List<PedidoResponseDTO> dtos = pedidos.stream()
                 .map(this::convertToResponseDTO)
@@ -119,12 +117,11 @@ public class PedidoController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * GET /api/pedidos/restaurante/{restauranteId}
-     * GET /api/restaurantes/{restauranteId}/pedidos (Alias de rota)
-     */
     @GetMapping(value = {"/pedidos/restaurante/{restauranteId}", "/restaurantes/{restauranteId}/pedidos"})
-    public ResponseEntity<List<PedidoResponseDTO>> buscarPorRestaurante(@PathVariable Long restauranteId) {
+    @Operation(summary = "Buscar pedidos de um restaurante")
+    @ApiResponse(responseCode = "200", description = "Lista de pedidos")
+    public ResponseEntity<List<PedidoResponseDTO>> buscarPorRestaurante(
+            @Parameter(description = "ID do restaurante") @PathVariable Long restauranteId) {
         List<Pedido> pedidos = pedidoService.buscarPorRestaurante(restauranteId);
         List<PedidoResponseDTO> dtos = pedidos.stream()
                 .map(this::convertToResponseDTO)
@@ -132,167 +129,68 @@ public class PedidoController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * GET /api/pedidos/status/{status} - Pedidos por status
-     */
-    @GetMapping("/pedidos/status/{status}")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarPorStatus(@PathVariable StatusPedido status) {
-        List<Pedido> pedidos = pedidoService.buscarPorStatus(status);
-        List<PedidoResponseDTO> dtos = pedidos.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    /**
-     * GET /api/pedidos/em-andamento - Pedidos para a cozinha
-     */
-    @GetMapping("/pedidos/em-andamento")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarEmAndamento() {
-        List<Pedido> pedidos = pedidoService.buscarEmAndamento();
-        List<PedidoResponseDTO> dtos = pedidos.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    /**
-     * GET /api/pedidos/hoje - Pedidos de hoje
-     */
-    @GetMapping("/pedidos/hoje")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarPedidosDeHoje() {
-        List<Pedido> pedidos = pedidoService.buscarPedidosDeHoje();
-        List<PedidoResponseDTO> dtos = pedidos.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    /**
-     * GET /api/pedidos/periodo - Pedidos por período (Query Params)
-     */
-    @GetMapping("/pedidos/periodo")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarPorPeriodo(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim) {
-        List<Pedido> pedidos = pedidoService.buscarPorPeriodo(inicio, fim);
-        List<PedidoResponseDTO> dtos = pedidos.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    /**
-     * GET /api/pedidos/valor-acima - Pedidos com valor acima de X
-     */
-    @GetMapping("/pedidos/valor-acima")
-    public ResponseEntity<List<PedidoResponseDTO>> buscarValorAcima(@RequestParam BigDecimal min) {
-        List<Pedido> pedidos = pedidoService.buscarComValorAcimaDe(min);
-        List<PedidoResponseDTO> dtos = pedidos.stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    /*
-     * Endpoints de Relatórios movidos para RelatorioController:
-     * - /api/pedidos/relatorio
-     * - /api/pedidos/estatisticas
-     * - /api/pedidos/restaurante/{restauranteId}/total-vendido
-     */
-
-
-    /**
-     * PATCH /api/pedidos/{id}/status - Atualizar status genérico
-     */
     @PatchMapping("/pedidos/{id}/status")
-    public ResponseEntity<?> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    @Operation(summary = "Atualizar status de um pedido (genérico)")
+    @ApiResponse(responseCode = "200", description = "Status atualizado")
+    @ApiResponse(responseCode = "404", description = "Pedido não encontrado")
+    @ApiResponse(responseCode = "422", description = "Transição de status inválida")
+    public ResponseEntity<PedidoResponseDTO> atualizarStatus(
+            @Parameter(description = "ID do pedido") @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
         try {
             StatusPedido novoStatus = StatusPedido.valueOf(body.get("status").toUpperCase());
             Pedido pedidoAtualizado = pedidoService.atualizarStatus(id, novoStatus);
             return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", "Status inválido"));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Status inválido: " + body.get("status"));
         }
     }
 
-    /**
-     * PATCH /api/pedidos/{id}/confirmar - Confirma o pedido
-     */
     @PatchMapping("/pedidos/{id}/confirmar")
-    public ResponseEntity<?> confirmarPedido(@PathVariable Long id) {
-        try {
-            Pedido pedidoAtualizado = pedidoService.confirmarPedido(id);
-            return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Confirmar um pedido (PENDENTE -> CONFIRMADO)")
+    @ApiResponse(responseCode = "200", description = "Pedido confirmado")
+    public ResponseEntity<PedidoResponseDTO> confirmarPedido(@Parameter(description = "ID do pedido") @PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.confirmarPedido(id);
+        return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
     }
 
-    /**
-     * PATCH /api/pedidos/{id}/preparar - Inicia preparação
-     */
     @PatchMapping("/pedidos/{id}/preparar")
-    public ResponseEntity<?> iniciarPreparacao(@PathVariable Long id) {
-        try {
-            Pedido pedidoAtualizado = pedidoService.iniciarPreparacao(id);
-            return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Iniciar preparo (CONFIRMADO -> PREPARANDO)")
+    @ApiResponse(responseCode = "200", description = "Pedido em preparação")
+    public ResponseEntity<PedidoResponseDTO> iniciarPreparacao(@Parameter(description = "ID do pedido") @PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.iniciarPreparacao(id);
+        return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
     }
 
-    /**
-     * PATCH /api/pedidos/{id}/entregar - Marca como entregue
-     */
     @PatchMapping("/pedidos/{id}/entregar")
-    public ResponseEntity<?> marcarComoEntregue(@PathVariable Long id) {
-        try {
-            Pedido pedidoAtualizado = pedidoService.marcarComoEntregue(id);
-            return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Marcar como entregue (PREPARANDO -> ENTREGUE)")
+    @ApiResponse(responseCode = "200", description = "Pedido entregue")
+    public ResponseEntity<PedidoResponseDTO> marcarComoEntregue(@Parameter(description = "ID do pedido") @PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.marcarComoEntregue(id);
+        return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
     }
 
-    /**
-     * PATCH /api/pedidos/{id}/cancelar - Cancela o pedido (com motivo)
-     */
     @PatchMapping("/pedidos/{id}/cancelar")
-    public ResponseEntity<?> cancelarPedido(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        try {
-            String motivo = body.get("motivo");
-            if (motivo == null || motivo.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("erro", "Motivo do cancelamento é obrigatório"));
-            }
-            Pedido pedidoAtualizado = pedidoService.cancelarPedido(id, motivo);
-            return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
+    @Operation(summary = "Cancelar um pedido (com motivo)")
+    @ApiResponse(responseCode = "200", description = "Pedido cancelado")
+    @ApiResponse(responseCode = "422", description = "Pedido já entregue não pode ser cancelado")
+    public ResponseEntity<PedidoResponseDTO> cancelarPedido(
+            @Parameter(description = "ID do pedido") @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+
+        String motivo = body.get("motivo");
+        if (motivo == null || motivo.trim().isEmpty()) {
+            throw new BusinessException("Motivo do cancelamento é obrigatório");
         }
+        Pedido pedidoAtualizado = pedidoService.cancelarPedido(id, motivo);
+        return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
     }
 
-    /**
-     * DELETE /api/pedidos/{id} - Cancela o pedido (sem motivo)
-     */
     @DeleteMapping("/pedidos/{id}")
-    public ResponseEntity<?> cancelarPedido(@PathVariable Long id) {
-        try {
-            String motivo = "Cancelado pelo usuário via DELETE";
-            Pedido pedidoAtualizado = pedidoService.cancelarPedido(id, motivo);
-            return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("erro", e.getMessage()));
-        }
+    @Operation(summary = "Cancelar um pedido (via DELETE, sem motivo)")
+    @ApiResponse(responseCode = "200", description = "Pedido cancelado")
+    public ResponseEntity<PedidoResponseDTO> cancelarPedido(@Parameter(description = "ID do pedido") @PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.cancelarPedido(id, "Cancelado pelo usuário via DELETE");
+        return ResponseEntity.ok(convertToResponseDTO(pedidoAtualizado));
     }
 }

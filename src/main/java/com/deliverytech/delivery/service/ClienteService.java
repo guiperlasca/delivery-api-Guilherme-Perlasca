@@ -1,9 +1,11 @@
 package com.deliverytech.delivery.service;
 
-import com.deliverytech.delivery.dto.ClienteRequestDTO; // NOVO
+import com.deliverytech.delivery.dto.ClienteRequestDTO;
 import com.deliverytech.delivery.entity.Cliente;
+import com.deliverytech.delivery.exception.ConflictException; // Importar
+import com.deliverytech.delivery.exception.EntityNotFoundException; // Importar
 import com.deliverytech.delivery.repository.ClienteRepository;
-import org.modelmapper.ModelMapper; // NOVO
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -18,114 +20,63 @@ public class ClienteService {
     @Autowired
     private ModelMapper modelMapper;
 
-    // Cadastrar novo cliente
     public Cliente cadastrar(ClienteRequestDTO clienteDTO) {
-        // Validação: email único
+        // Validação: email único (agora lança 409)
         if (clienteRepository.existsByEmail(clienteDTO.getEmail())) {
-            throw new RuntimeException("Email já cadastrado: " + clienteDTO.getEmail());
+            throw new ConflictException("Email já cadastrado: " + clienteDTO.getEmail());
         }
 
-        // Mapeia DTO para Entidade
         Cliente cliente = modelMapper.map(clienteDTO, Cliente.class);
-
-        // Validações básicas
-        validarCliente(cliente);
-
         return clienteRepository.save(cliente);
     }
 
-    // Buscar todos os clientes ativos
     public List<Cliente> buscarTodos() {
         return clienteRepository.findByAtivoTrue();
     }
 
-    // Buscar cliente por ID
-    public Optional<Cliente> buscarPorId(Long id) {
-        return clienteRepository.findById(id);
+    public Cliente buscarPorId(Long id) {
+        return clienteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado: " + id));
     }
 
-    // Buscar por email
-    public Optional<Cliente> buscarPorEmail(String email) {
-        return clienteRepository.findByEmail(email);
+    public Cliente buscarPorEmail(String email) {
+        return clienteRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado com este email"));
     }
 
-    // Buscar por nome (contém)
     public List<Cliente> buscarPorNome(String nome) {
         return clienteRepository.findByNomeContainingIgnoreCase(nome);
     }
 
-    // Atualizar cliente
-    public Cliente atualizar(Long id, ClienteRequestDTO clienteAtualizadoDTO) { // MODIFICADO
-        Optional<Cliente> clienteExistente = clienteRepository.findById(id);
+    public Cliente atualizar(Long id, ClienteRequestDTO clienteAtualizadoDTO) {
+        // buscarPorId já trata o 404
+        Cliente cliente = buscarPorId(id);
 
-        if (clienteExistente.isEmpty()) {
-            throw new RuntimeException("Cliente não encontrado: "+ id);
-        }
-
-        Cliente cliente = clienteExistente.get();
-
-        // Verificar se email não está sendo usado por outro cliente
+        // Verificar se o email está sendo alterado para um já existente
         if (!cliente.getEmail().equals(clienteAtualizadoDTO.getEmail())) {
             if (clienteRepository.existsByEmail(clienteAtualizadoDTO.getEmail())) {
-                throw new RuntimeException("Email já cadastrado: " + clienteAtualizadoDTO.getEmail());
+                throw new ConflictException("Email já cadastrado: " + clienteAtualizadoDTO.getEmail());
             }
         }
 
-        // Atualizar campos (Mapeia DTO para a entidade existente)
         modelMapper.map(clienteAtualizadoDTO, cliente);
-        validarCliente(cliente);
-
         return clienteRepository.save(cliente);
     }
 
-    // Inativar cliente (soft delete)
     public void inativar(Long id) {
-        // ... (método inalterado)
-        Optional<Cliente> cliente = clienteRepository.findById(id);
-
-        if (cliente.isEmpty()) {
-            throw new RuntimeException("Cliente não encontrado: " + id);
-        }
-
-        Cliente clienteEntity = cliente.get();
-        clienteEntity.setAtivo(false);
-        clienteRepository.save(clienteEntity);
+        Cliente cliente = buscarPorId(id); // Garante 404 se não existir
+        cliente.setAtivo(false);
+        clienteRepository.save(cliente);
     }
 
-    // Reativar cliente
     public void reativar(Long id) {
-        Optional<Cliente> cliente = clienteRepository.findById(id);
-
-        if (cliente.isEmpty()) {
-            throw new RuntimeException("Cliente não encontrado: " + id);
-        }
-
-        Cliente clienteEntity = cliente.get();
-        clienteEntity.setAtivo(true);
-        clienteRepository.save(clienteEntity);
+        Cliente cliente = buscarPorId(id); // Garante 404 se não existir
+        cliente.setAtivo(true);
+        clienteRepository.save(cliente);
     }
 
-    // Contar clientes ativos
     public Long contarAtivos() {
         return clienteRepository.contarClientesAtivos();
     }
 
-    // Validações privadas
-    private void validarCliente(Cliente cliente) {
-        if (cliente.getNome() == null || cliente.getNome().trim().isEmpty()) {
-            throw new RuntimeException("Nome é obrigatório");
-        }
-
-        if (cliente.getEmail() == null || cliente.getEmail().trim().isEmpty()) {
-            throw new RuntimeException("Email é obrigatório");
-        }
-
-        if (!cliente.getEmail().contains("@")) {
-            throw new RuntimeException("Email inválido");
-        }
-
-        if (cliente.getTelefone() == null || cliente.getTelefone().trim().isEmpty()) {
-            throw new RuntimeException("Telefone é obrigatório");
-        }
-    }
 }
