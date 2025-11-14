@@ -3,132 +3,280 @@
 		"_postman_id": "4af88bae-9705-422e-973e-5e3eae3b2b3f",
 		"name": "Delivery API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "39723298",
-		"_collection_link": "https://guilherme-perlasca.postman.co/workspace/aula~c4ee8d55-cc0d-44b2-830c-3746122f014f/collection/39723298-4af88bae-9705-422e-973e-5e3eae3b2b3f?action=share&source=collection_link&creator=39723298"
+		"_exporter_id": "39723298"
 	},
 	"item": [
 		{
-			"name": "Cenário 1: Cadastrar Cliente",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"nome\": \"Steve Rogers\",\r\n    \"email\": \"capitao@vingadores.com\",\r\n    \"telefone\": \"999990001\",\r\n    \"endereco\": \"Brooklyn, 1940 - New York/NY\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+			"name": "Cenários de Sucesso (Roteiro 5)",
+			"item": [
+				{
+					"name": "Cenário 1: Cadastrar Cliente",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"Steve Rogers\",\r\n    \"email\": \"capitao@vingadores.com\",\r\n    \"telefone\": \"999990001\",\r\n    \"endereco\": \"Brooklyn, 1940 - New York/NY\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/clientes",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"clientes"
+							]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "http://localhost:8080/api/clientes",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"clientes"
-					]
+				{
+					"name": "Cenário 2: Criar Pedido",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"clienteId\": 1,\r\n    \"restauranteId\": 1,\r\n    \"observacoes\": \"Pedido de teste do Roteiro 4!\",\r\n    \"itens\": [\r\n        {\r\n            \"produtoId\": 1,\r\n            \"quantidade\": 1\r\n        },\r\n        {\r\n            \"produtoId\": 3,\r\n            \"quantidade\": 2\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/pedidos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"pedidos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cenário 3: Buscar Produtos",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/restaurantes/1/produtos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"restaurantes",
+								"1",
+								"produtos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cenário 4: Atualizar Status Pedido",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\": \"CONFIRMADO\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/pedidos/5/status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"pedidos",
+								"5",
+								"status"
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		},
 		{
-			"name": "Cenário 2: Criar Pedido",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"clienteId\": 1,\r\n    \"restauranteId\": 1,\r\n    \"observacoes\": \"Pedido de teste do Roteiro 4!\",\r\n    \"itens\": [\r\n        {\r\n            \"produtoId\": 1,\r\n            \"quantidade\": 1\r\n        },\r\n        {\r\n            \"produtoId\": 3,\r\n            \"quantidade\": 2\r\n        }\r\n    ]\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+			"name": "Testes de Erro (Roteiro 6)",
+			"item": [
+				{
+					"name": "R6: Teste 400 - Restaurante Nome Vazio",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"\",\r\n    \"categoria\": \"Teste 400\",\r\n    \"taxaEntrega\": 5.00\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/restaurantes",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"restaurantes"
+							]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "http://localhost:8080/api/pedidos",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"pedidos"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Cenário 3: Buscar Produtos",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"status\": \"CONFIRMADO\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+				{
+					"name": "R6: Teste 400 - Produto Preço Negativo",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"Produto Teste\",\r\n    \"preco\": -10.00,\r\n    \"categoria\": \"Teste\",\r\n    \"restauranteId\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/produtos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"produtos"
+							]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "http://localhost:8080/api/restaurantes/1/produtos",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"restaurantes",
-						"1",
-						"produtos"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Cenário 4: Atualizar Status Pedido",
-			"request": {
-				"method": "PATCH",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"status\": \"CONFIRMADO\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+				{
+					"name": "R6: Teste 404 - Buscar Restaurante Inexistente",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/restaurantes/999",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"restaurantes",
+								"999"
+							]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "http://localhost:8080/api/pedidos/5/status",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"pedidos",
-						"5",
-						"status"
-					]
+				{
+					"name": "R6: Teste 409 - Cliente Email Duplicado",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"Bruce Wayne Falso\",\r\n    \"email\": \"batman@wayneenterprises.com\",\r\n    \"telefone\": \"123456789\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/clientes",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"clientes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "R6: Teste 422 - Cancelar Pedido Entregue",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"motivo\": \"Testando regra de negócio\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/pedidos/1/cancelar",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"pedidos",
+								"1",
+								"cancelar"
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		}
 	]
 }
