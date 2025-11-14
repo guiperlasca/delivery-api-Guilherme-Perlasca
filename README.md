@@ -33,7 +33,9 @@ Sistema completo de delivery desenvolvido com **Spring Boot 3.2.x** e **Java 21 
 - Repositories com 25+ queries personalizadas
 - Services com regras de negócio e validações
 - DTOs e validação com Spring Validation
-- Controllers REST com 30+ endpoints
+- Tratamento Global de Exceções (`@ControllerAdvice`) com respostas de erro padronizadas**
+- Documentação de API completa com Swagger (OpenAPI)**
+- Controllers REST com 40+ endpoints (incluindo Clientes, Pedidos, Produtos e Relatórios)
 - Soft delete e controle de disponibilidade
 - Máquina de estados para pedidos
 - Dados de teste (super-heróis, restaurantes famosos)
@@ -53,6 +55,7 @@ Sistema completo de delivery desenvolvido com **Spring Boot 3.2.x** e **Java 21 
 | Spring Validation | Validação de dados |
 | ModelMapper | Conversão DTO ↔ Entity |
 | Maven | Gerenciamento de dependências |
+| SpringDoc (OpenAPI) | Documentação de API (Swagger) |
 
 ---
 
@@ -75,8 +78,9 @@ cd delivery-api
 |--------|-----|
 | API Base | http://localhost:8080/api/ |
 | H2 Console | http://localhost:8080/h2-console |
+| Swagger UI | http://localhost:8080/swagger-ui.html |
+| API Docs (JSON) | http://localhost:8080/api-docs |
 | Health Check | http://localhost:8080/health |
-
 ---
 
 ## 📡 Endpoints da API
@@ -97,7 +101,7 @@ cd delivery-api
 ### 🏪 Restaurantes (`/api/restaurantes`)
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
-| GET | `/api/restaurantes` | Lista restaurantes ativos |
+| GET | `/api/restaurantes` | Lista restaurantes (filtros: `categoria`, `ativo`) |
 | GET | `/api/restaurantes/{id}` | Busca por ID |
 | GET | `/api/restaurantes/buscar?nome=Pizza` | Busca por nome |
 | GET | `/api/restaurantes/categoria/{categoria}` | Filtra por categoria |
@@ -106,9 +110,11 @@ cd delivery-api
 | GET | `/api/restaurantes/avaliacao?min=4.0` | Por avaliação mínima |
 | GET | `/api/restaurantes/categorias` | Lista todas as categorias |
 | GET | `/api/restaurantes/{id}/taxa-entrega/{cep}` | Calcula taxa de entrega |
+| GET | `/api/restaurantes/proximos/{cep}` | Busca restaurantes próximos (simulado) |
 | POST | `/api/restaurantes` | Cadastra restaurante |
 | PUT | `/api/restaurantes/{id}` | Atualiza restaurante |
 | PATCH | `/api/restaurantes/{id}/avaliacao` | Atualiza avaliação |
+| PATCH | `/api/restaurantes/{id}/status` | Ativa ou desativa um restaurante |
 | DELETE | `/api/restaurantes/{id}` | Inativa restaurante |
 | PATCH | `/api/restaurantes/{id}/reativar` | Reativa restaurante |
 
@@ -136,25 +142,29 @@ cd delivery-api
 ### 📦 Pedidos (`/api/pedidos`)
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
-| GET | `/api/pedidos` | Lista todos os pedidos |
+| GET | `/api/pedidos` | Lista todos os pedidos (filtros: `status`, `data`) |
 | GET | `/api/pedidos/{id}` | Busca por ID |
 | GET | `/api/clientes/{clienteId}/pedidos` | Histórico de pedidos do cliente |
-| GET | `/api/pedidos/restaurante/{id}` | Pedidos por restaurante |
+| GET | `/api/restaurantes/{restauranteId}/pedidos` | Pedidos por restaurante (Alias) |
 | GET | `/api/pedidos/status/{status}` | Por status |
 | GET | `/api/pedidos/em-andamento` | Para a cozinha |
-| GET | `/api/pedidos/hoje` | Pedidos de hoje |
-| GET | `/api/pedidos/periodo?inicio=...&fim=...` | Por período |
-| GET | `/api/pedidos/valor-acima?min=50` | Pedidos com valor acima de X |
-| GET | `/api/pedidos/relatorio?inicio=...&fim=...&status=...` | Relatório por período e status |
 | POST | `/api/pedidos` | Cria novo pedido (com itens) |
 | POST | `/api/pedidos/calcular` | Calcula total do pedido (sem salvar) |
 | PATCH | `/api/pedidos/{id}/status` | Atualiza status |
 | PATCH | `/api/pedidos/{id}/confirmar` | Confirma pedido |
 | PATCH | `/api/pedidos/{id}/preparar` | Inicia preparação |
 | PATCH | `/api/pedidos/{id}/entregar` | Marca como entregue |
-| PATCH | `/api/pedidos/{id}/cancelar` | Cancela pedido |
-| GET | `/api/pedidos/estatisticas` | Dashboard |
-| GET | `/api/pedidos/restaurante/{id}/total-vendido` | Total vendido por restaurante |
+| PATCH | `/api/pedidos/{id}/cancelar` | Cancela pedido (com motivo) |
+| DELETE | `/api/pedidos/{id}` | Cancela pedido (sem motivo) |
+
+### 📊 Relatórios (`/api/relatorios`)
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/relatorios/vendas-por-restaurante` | Total vendido por restaurante |
+| GET | `/api/relatorios/produtos-mais-vendidos` | Top produtos (simulado) |
+| GET | `/api/relatorios/clientes-ativos` | Contagem de clientes ativos |
+| GET | `/api/relatorios/pedidos-por-periodo` | Filtra pedidos por data/hora e status |
+| GET | `/api/relatorios/pedidos/estatisticas` | Dashboard de status de pedidos |
 
 ---
 
@@ -192,6 +202,7 @@ src/main/java/com/deliverytech/delivery/
 ├── controller/
 ├── dto/
 ├── entity/
+├── exception/
 ├── repository/
 └── service/
 ```
@@ -200,7 +211,8 @@ src/main/java/com/deliverytech/delivery/
 
 ## 📈 Próximas Etapas
 
-- [ ] Tratamento Global de Exceções (@ControllerAdvice)
+- [✅] Tratamento Global de Exceções (@ControllerAdvice)
+- [✅] Documentação de API com Swagger (OpenAPI)
 - [ ] Autenticação JWT + Refresh Token
 - [ ] Migrar banco para PostgreSQL
 - [ ] Sistema de avaliação + reputação
