@@ -1,5 +1,7 @@
 package com.deliverytech.delivery.config;
 
+import com.deliverytech.delivery.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,28 +14,34 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(AbstractHttpConfigurer::disable) // Desabilita CSRF para API REST
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Sem sessão (Stateless)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints Públicos (Swagger)
+                        // Públicos (Swagger)
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                        // Endpoints Públicos (Autenticação - vamos criar em breve)
+                        // Públicos (Autenticação)
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                        // Endpoints Públicos (Leitura básica)
+                        // Públicos (Leitura)
                         .requestMatchers(HttpMethod.GET, "/api/restaurantes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/produtos/**").permitAll()
-                        .requestMatchers("/actuator/**", "/health").permitAll()
-                        // Qualquer outra rota precisa de autenticação
+                        .requestMatchers("/actuator/**", "/health", "/info").permitAll()
+                        // Protegidos
                         .anyRequest().authenticated()
                 )
+                // Adiciona o filtro JWT antes do filtro padrão de Username/Password
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
