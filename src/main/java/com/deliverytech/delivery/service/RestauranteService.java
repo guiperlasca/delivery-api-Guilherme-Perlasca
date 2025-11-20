@@ -2,9 +2,11 @@ package com.deliverytech.delivery.service;
 
 import com.deliverytech.delivery.dto.RestauranteRequestDTO;
 import com.deliverytech.delivery.entity.Restaurante;
+import com.deliverytech.delivery.entity.Usuario;
 import com.deliverytech.delivery.exception.BusinessException;
 import com.deliverytech.delivery.exception.EntityNotFoundException;
 import com.deliverytech.delivery.repository.RestauranteRepository;
+import com.deliverytech.delivery.security.SecurityUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,23 @@ public class RestauranteService {
 
     @Autowired
     private RestauranteRepository restauranteRepository;
+
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    // Verifica se o usuário logado é dono do restaurante (ou Admin)
+    public boolean isOwner(Long restauranteId) {
+        Usuario user = securityUtils.getCurrentUser();
+        if (user == null) return false;
+
+        // Admin pode tudo
+        if (user.getRole().name().equals("ADMIN")) return true;
+
+        // Se for restaurante, verifica se o ID bate
+        return user.getRole().name().equals("RESTAURANTE") &&
+                user.getRestauranteId() != null &&
+                user.getRestauranteId().equals(restauranteId);
+    }
 
     @Autowired
     private ModelMapper modelMapper;

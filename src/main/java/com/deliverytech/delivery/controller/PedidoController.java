@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // Importado
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,6 +47,7 @@ public class PedidoController {
     }
 
     @PostMapping("/pedidos")
+    @PreAuthorize("hasRole('CLIENTE')") // Apenas Clientes fazem pedidos
     @Operation(summary = "Criar novo pedido")
     @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso",
             content = @Content(schema = @Schema(implementation = PedidoResponseDTO.class)))
@@ -58,6 +60,7 @@ public class PedidoController {
     }
 
     @PostMapping("/pedidos/calcular")
+    @PreAuthorize("hasRole('CLIENTE')") // Apenas Clientes calculam
     @Operation(summary = "Calcular total de um pedido (sem salvar)")
     @ApiResponse(responseCode = "200", description = "Total calculado")
     @ApiResponse(responseCode = "400", description = "Dados inválidos")
@@ -69,6 +72,7 @@ public class PedidoController {
     }
 
     @GetMapping("/pedidos")
+    @PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN vê todos os pedidos
     @Operation(summary = "Listar todos os pedidos", description = "Permite filtrar por status ou data.")
     @ApiResponse(responseCode = "200", description = "Lista de pedidos")
     public ResponseEntity<List<PedidoResponseDTO>> listarTodos(
@@ -96,6 +100,7 @@ public class PedidoController {
     }
 
     @GetMapping("/pedidos/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @pedidoService.canAccess(#id)") // Admin ou Dono (implementação futura de canAccess)
     @Operation(summary = "Buscar pedido por ID")
     @ApiResponse(responseCode = "200", description = "Pedido encontrado",
             content = @Content(schema = @Schema(implementation = PedidoResponseDTO.class)))
@@ -106,6 +111,7 @@ public class PedidoController {
     }
 
     @GetMapping("/clientes/{clienteId}/pedidos")
+    @PreAuthorize("hasRole('CLIENTE') or hasRole('ADMIN')") // Cliente ou Admin
     @Operation(summary = "Buscar histórico de pedidos de um cliente")
     @ApiResponse(responseCode = "200", description = "Lista de pedidos")
     public ResponseEntity<List<PedidoResponseDTO>> buscarPorCliente(
@@ -118,6 +124,7 @@ public class PedidoController {
     }
 
     @GetMapping(value = {"/pedidos/restaurante/{restauranteId}", "/restaurantes/{restauranteId}/pedidos"})
+    @PreAuthorize("hasRole('RESTAURANTE') or hasRole('ADMIN')") // Restaurante ou Admin
     @Operation(summary = "Buscar pedidos de um restaurante")
     @ApiResponse(responseCode = "200", description = "Lista de pedidos")
     public ResponseEntity<List<PedidoResponseDTO>> buscarPorRestaurante(
@@ -130,6 +137,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/pedidos/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')") // Alteração genérica só para ADMIN
     @Operation(summary = "Atualizar status de um pedido (genérico)")
     @ApiResponse(responseCode = "200", description = "Status atualizado")
     @ApiResponse(responseCode = "404", description = "Pedido não encontrado")
@@ -147,6 +155,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/pedidos/{id}/confirmar")
+    @PreAuthorize("hasRole('RESTAURANTE') or hasRole('ADMIN')") // Restaurante confirma
     @Operation(summary = "Confirmar um pedido (PENDENTE -> CONFIRMADO)")
     @ApiResponse(responseCode = "200", description = "Pedido confirmado")
     public ResponseEntity<PedidoResponseDTO> confirmarPedido(@Parameter(description = "ID do pedido") @PathVariable Long id) {
@@ -155,6 +164,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/pedidos/{id}/preparar")
+    @PreAuthorize("hasRole('RESTAURANTE') or hasRole('ADMIN')") // Restaurante prepara
     @Operation(summary = "Iniciar preparo (CONFIRMADO -> PREPARANDO)")
     @ApiResponse(responseCode = "200", description = "Pedido em preparação")
     public ResponseEntity<PedidoResponseDTO> iniciarPreparacao(@Parameter(description = "ID do pedido") @PathVariable Long id) {
@@ -163,6 +173,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/pedidos/{id}/entregar")
+    @PreAuthorize("hasRole('ENTREGADOR') or hasRole('ADMIN')") // Entregador finaliza
     @Operation(summary = "Marcar como entregue (PREPARANDO -> ENTREGUE)")
     @ApiResponse(responseCode = "200", description = "Pedido entregue")
     public ResponseEntity<PedidoResponseDTO> marcarComoEntregue(@Parameter(description = "ID do pedido") @PathVariable Long id) {
@@ -171,6 +182,7 @@ public class PedidoController {
     }
 
     @PatchMapping("/pedidos/{id}/cancelar")
+    @PreAuthorize("hasRole('CLIENTE') or hasRole('ADMIN')") // Cliente ou Admin cancela
     @Operation(summary = "Cancelar um pedido (com motivo)")
     @ApiResponse(responseCode = "200", description = "Pedido cancelado")
     @ApiResponse(responseCode = "422", description = "Pedido já entregue não pode ser cancelado")
@@ -187,6 +199,7 @@ public class PedidoController {
     }
 
     @DeleteMapping("/pedidos/{id}")
+    @PreAuthorize("hasRole('CLIENTE') or hasRole('ADMIN')") // Cliente ou Admin cancela
     @Operation(summary = "Cancelar um pedido (via DELETE, sem motivo)")
     @ApiResponse(responseCode = "200", description = "Pedido cancelado")
     public ResponseEntity<PedidoResponseDTO> cancelarPedido(@Parameter(description = "ID do pedido") @PathVariable Long id) {

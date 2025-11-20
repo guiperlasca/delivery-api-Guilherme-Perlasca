@@ -16,6 +16,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // Importado
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -36,6 +37,7 @@ public class RestauranteController {
     private ModelMapper modelMapper;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN pode cadastrar restaurantes
     @Operation(summary = "Cadastrar novo restaurante")
     @ApiResponse(responseCode = "201", description = "Restaurante criado com sucesso",
             content = @Content(mediaType = "application/json",
@@ -49,6 +51,7 @@ public class RestauranteController {
     }
 
     @GetMapping
+    // Público (Acesso liberado no SecurityConfig)
     @Operation(summary = "Listar restaurantes")
     @ApiResponse(responseCode = "200", description = "Lista de restaurantes")
     public ResponseEntity<List<RestauranteResponseDTO>> listarTodos(
@@ -81,6 +84,7 @@ public class RestauranteController {
     }
 
     @GetMapping("/{id}")
+    // Público (Acesso liberado no SecurityConfig)
     @Operation(summary = "Buscar restaurante por ID")
     @ApiResponse(responseCode = "200", description = "Restaurante encontrado",
             content = @Content(mediaType = "application/json",
@@ -90,12 +94,13 @@ public class RestauranteController {
             @Parameter(description = "ID do restaurante", example = "1")
             @PathVariable Long id) {
 
-        Restaurante restaurante = restauranteService.buscarPorId(id); // Lança 404 se não achar
+        Restaurante restaurante = restauranteService.buscarPorId(id);
         RestauranteResponseDTO responseDTO = modelMapper.map(restaurante, RestauranteResponseDTO.class);
         return ResponseEntity.ok(responseDTO);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @restauranteService.isOwner(#id)") // Admin ou Dono do restaurante
     @Operation(summary = "Atualizar restaurante por ID")
     @ApiResponse(responseCode = "200", description = "Restaurante atualizado com sucesso")
     @ApiResponse(responseCode = "404", description = "Restaurante não encontrado")
@@ -127,6 +132,7 @@ public class RestauranteController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN pode inativar
     @Operation(summary = "Inativar restaurante (Soft Delete)")
     @ApiResponse(responseCode = "200", description = "Restaurante inativado com sucesso")
     @ApiResponse(responseCode = "404", description = "Restaurante não encontrado")
@@ -139,6 +145,7 @@ public class RestauranteController {
     }
 
     @PatchMapping("/{id}/reativar")
+    @PreAuthorize("hasRole('ADMIN')") // Apenas ADMIN pode reativar
     @Operation(summary = "Reativar um restaurante previamente inativado")
     @ApiResponse(responseCode = "200", description = "Restaurante reativado com sucesso")
     @ApiResponse(responseCode = "404", description = "Restaurante não encontrado")
@@ -165,6 +172,7 @@ public class RestauranteController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN') or @restauranteService.isOwner(#id)") // Admin ou Dono
     @Operation(summary = "Ativar ou desativar um restaurante (método preferido)")
     @ApiResponse(responseCode = "200", description = "Status alterado com sucesso")
     @ApiResponse(responseCode = "404", description = "Restaurante não encontrado")

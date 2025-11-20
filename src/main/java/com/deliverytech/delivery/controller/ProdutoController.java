@@ -15,6 +15,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // Importado
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,6 +41,7 @@ public class ProdutoController {
     }
 
     @PostMapping("/produtos")
+    @PreAuthorize("hasRole('RESTAURANTE') or hasRole('ADMIN')") // Apenas Restaurantes ou Admin criam produtos
     @Operation(summary = "Cadastrar novo produto")
     @ApiResponse(responseCode = "201", description = "Produto criado com sucesso",
             content = @Content(schema = @Schema(implementation = ProdutoResponseDTO.class)))
@@ -52,6 +54,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/produtos")
+    // Público
     @Operation(summary = "Listar todos os produtos de todos os restaurantes")
     @ApiResponse(responseCode = "200", description = "Lista de produtos")
     public ResponseEntity<List<ProdutoResponseDTO>> listarTodos() {
@@ -63,6 +66,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/produtos/{id}")
+    // Público
     @Operation(summary = "Buscar produto por ID")
     @ApiResponse(responseCode = "200", description = "Produto encontrado",
             content = @Content(schema = @Schema(implementation = ProdutoResponseDTO.class)))
@@ -73,6 +77,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/restaurantes/{restauranteId}/produtos")
+    // Público
     @Operation(summary = "Buscar produtos disponíveis de um restaurante")
     @ApiResponse(responseCode = "200", description = "Lista de produtos")
     public ResponseEntity<List<ProdutoResponseDTO>> buscarPorRestaurante(
@@ -85,6 +90,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/produtos/restaurante/{restauranteId}/todos")
+    // Público
     @Operation(summary = "Buscar todos os produtos (incluindo indisponíveis) de um restaurante")
     @ApiResponse(responseCode = "200", description = "Lista de produtos")
     public ResponseEntity<List<ProdutoResponseDTO>> buscarTodosPorRestaurante(
@@ -97,6 +103,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/produtos/categoria/{categoria}")
+    // Público
     @Operation(summary = "Buscar produtos disponíveis por categoria (geral)")
     @ApiResponse(responseCode = "200", description = "Lista de produtos")
     public ResponseEntity<List<ProdutoResponseDTO>> buscarPorCategoria(
@@ -109,6 +116,7 @@ public class ProdutoController {
     }
 
     @GetMapping("/produtos/buscar")
+    // Público
     @Operation(summary = "Buscar produtos por nome (geral)")
     @ApiResponse(responseCode = "200", description = "Lista de produtos")
     public ResponseEntity<List<ProdutoResponseDTO>> buscarPorNome(
@@ -121,6 +129,7 @@ public class ProdutoController {
     }
 
     @PutMapping("/produtos/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @produtoService.isOwner(#id)") // Admin ou Dono do restaurante do produto
     @Operation(summary = "Atualizar dados de um produto")
     @ApiResponse(responseCode = "200", description = "Produto atualizado",
             content = @Content(schema = @Schema(implementation = ProdutoResponseDTO.class)))
@@ -136,6 +145,7 @@ public class ProdutoController {
     }
 
     @PatchMapping("/produtos/{id}/disponibilidade")
+    @PreAuthorize("hasRole('ADMIN') or @produtoService.isOwner(#id)") // Admin ou Dono
     @Operation(summary = "Alterar disponibilidade (disponível/indisponível) de um produto")
     @ApiResponse(responseCode = "200", description = "Disponibilidade alterada")
     @ApiResponse(responseCode = "404", description = "Produto não encontrado")
@@ -151,6 +161,7 @@ public class ProdutoController {
     }
 
     @DeleteMapping("/produtos/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @produtoService.isOwner(#id)") // Admin ou Dono
     @Operation(summary = "Excluir um produto (Hard Delete)")
     @ApiResponse(responseCode = "200", description = "Produto deletado com sucesso")
     @ApiResponse(responseCode = "404", description = "Produto não encontrado")

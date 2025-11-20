@@ -4,10 +4,12 @@ import com.deliverytech.delivery.dto.ProdutoRequestDTO;
 import com.deliverytech.delivery.dto.ProdutoResponseDTO;
 import com.deliverytech.delivery.entity.Produto;
 import com.deliverytech.delivery.entity.Restaurante;
+import com.deliverytech.delivery.entity.Usuario;
 import com.deliverytech.delivery.exception.BusinessException;
 import com.deliverytech.delivery.exception.EntityNotFoundException;
 import com.deliverytech.delivery.repository.ProdutoRepository;
 import com.deliverytech.delivery.repository.RestauranteRepository;
+import com.deliverytech.delivery.security.SecurityUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,24 @@ import java.util.Optional;
 
 @Service
 public class ProdutoService {
+
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    // Verifica se o usuário logado é dono do produto
+    public boolean isOwner(Long produtoId) {
+        Usuario user = securityUtils.getCurrentUser();
+        if (user == null) return false;
+        if (user.getRole().name().equals("ADMIN")) return true;
+
+        Optional<Produto> produto = produtoRepository.findById(produtoId);
+        if (produto.isEmpty()) return false;
+
+        // O usuário deve ser dono do restaurante deste produto
+        return user.getRole().name().equals("RESTAURANTE") &&
+                user.getRestauranteId() != null &&
+                user.getRestauranteId().equals(produto.get().getRestaurante().getId());
+    }
 
     @Autowired
     private ProdutoRepository produtoRepository;
