@@ -56,6 +56,9 @@ Sistema completo de delivery desenvolvido com **Spring Boot 3.2.x** e **Java 21 
 | ModelMapper | Conversão DTO ↔ Entity |
 | Maven | Gerenciamento de dependências |
 | SpringDoc (OpenAPI) | Documentação de API (Swagger) |
+| Spring Security | Autenticação e Autorização |
+| JWT (JJWT) | Tokens de Segurança |
+| BCrypt | Criptografia de Senhas |
 
 ---
 
@@ -83,7 +86,22 @@ cd delivery-api
 | Health Check | http://localhost:8080/health |
 ---
 
+### 📚 Documentação (Swagger UI)
+Acesse `http://localhost:8080/swagger-ui.html` para:
+1. Visualizar todos os endpoints.
+2. Testar requisições em tempo real.
+3. **Autenticar:** Clique no botão "Authorize" e insira seu token JWT (formato: `Bearer <token>`) para acessar rotas protegidas.
+
+---
+
 ## 📡 Endpoints da API
+
+### 🔐 Autenticação e Segurança (`/api/auth`)
+| Método | Endpoint | Descrição | Acesso |
+|--------|----------|-----------|--------|
+| POST | `/api/auth/login` | Realiza login e retorna token JWT | Público |
+| POST | `/api/auth/register` | Cadastra novo usuário | Público |
+| GET | `/api/auth/me` | Retorna dados do usuário logado | Autenticado |
 
 ### 🧑‍💼 Clientes (`/api/clientes`)
 | Método | Endpoint | Descrição |
@@ -213,7 +231,7 @@ src/main/java/com/deliverytech/delivery/
 
 - [✅] Tratamento Global de Exceções (@ControllerAdvice)
 - [✅] Documentação de API com Swagger (OpenAPI)
-- [ ] Autenticação JWT + Refresh Token
+- [✅] Autenticação JWT + Spring Security
 - [ ] Migrar banco para PostgreSQL
 - [ ] Sistema de avaliação + reputação
 - [ ] Upload de imagens (S3 / Firebase)
