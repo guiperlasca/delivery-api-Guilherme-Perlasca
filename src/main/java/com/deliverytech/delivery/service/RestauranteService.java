@@ -9,6 +9,8 @@ import com.deliverytech.delivery.repository.RestauranteRepository;
 import com.deliverytech.delivery.security.SecurityUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,10 +28,12 @@ public class RestauranteService {
     // Verifica se o usuário logado é dono do restaurante (ou Admin)
     public boolean isOwner(Long restauranteId) {
         Usuario user = securityUtils.getCurrentUser();
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         // Admin pode tudo
-        if (user.getRole().name().equals("ADMIN")) return true;
+        if (user.getRole().name().equals("ADMIN"))
+            return true;
 
         // Se for restaurante, verifica se o ID bate
         return user.getRole().name().equals("RESTAURANTE") &&
@@ -41,6 +45,7 @@ public class RestauranteService {
     private ModelMapper modelMapper;
 
     // Cadastrar restaurante
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public Restaurante cadastrar(RestauranteRequestDTO restauranteDTO) {
         Restaurante restaurante = modelMapper.map(restauranteDTO, Restaurante.class);
 
@@ -53,12 +58,14 @@ public class RestauranteService {
     }
 
     // Buscar por ID
+    @Cacheable(value = "restaurantes", key = "#id")
     public Restaurante buscarPorId(Long id) {
         return restauranteRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Restaurante não encontrado: " + id));
     }
 
     // Atualizar restaurante
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public Restaurante atualizar(Long id, RestauranteRequestDTO restauranteAtualizadoDTO) {
         // buscaPorId já trata o 404
         Restaurante restaurante = buscarPorId(id);
@@ -70,6 +77,7 @@ public class RestauranteService {
     }
 
     // Atualizar avaliação
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public Restaurante atualizarAvaliacao(Long id, Double novaAvaliacao) {
         Restaurante restaurante = buscarPorId(id);
 
@@ -82,6 +90,7 @@ public class RestauranteService {
     }
 
     // Inativar restaurante
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public void inativar(Long id) {
         Restaurante restaurante = buscarPorId(id);
         restaurante.setAtivo(false);
@@ -89,6 +98,7 @@ public class RestauranteService {
     }
 
     // Reativar restaurante
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public void reativar(Long id) {
         Restaurante restaurante = buscarPorId(id);
         restaurante.setAtivo(true);
@@ -96,6 +106,7 @@ public class RestauranteService {
     }
 
     // (Roteiro 5, Atividade 1.1)
+    @CacheEvict(value = "restaurantes", allEntries = true)
     public Restaurante alterarStatus(Long id, boolean novoStatus) {
         Restaurante restaurante = buscarPorId(id);
         restaurante.setAtivo(novoStatus);
@@ -106,7 +117,8 @@ public class RestauranteService {
     public BigDecimal calcularTaxaEntrega(Long restauranteId, String cep) {
         Restaurante restaurante = buscarPorId(restauranteId);
 
-        BigDecimal taxaPadrao = restaurante.getTaxaEntrega() != null ? restaurante.getTaxaEntrega() : BigDecimal.valueOf(10);
+        BigDecimal taxaPadrao = restaurante.getTaxaEntrega() != null ? restaurante.getTaxaEntrega()
+                : BigDecimal.valueOf(10);
 
         if (cep != null && cep.endsWith("0")) {
             return BigDecimal.valueOf(5.00);
@@ -127,27 +139,35 @@ public class RestauranteService {
     }
 
     // Métodos de busca (sem alterações, apenas chamando o repository)
+    @Cacheable(value = "restaurantes")
     public List<Restaurante> buscarTodos() {
         return restauranteRepository.findByAtivoTrue();
     }
+
     public List<Restaurante> buscarPorNome(String nome) {
         return restauranteRepository.findByNomeContainingIgnoreCase(nome);
     }
+
     public List<Restaurante> buscarPorCategoria(String categoria) {
         return restauranteRepository.findByCategoriaAndAtivoTrue(categoria);
     }
+
     public List<Restaurante> buscarOrdenadosPorAvaliacao() {
         return restauranteRepository.buscarAtivosOrdenadosPorAvaliacao();
     }
+
     public List<Restaurante> buscarAcimaMedia() {
         return restauranteRepository.buscarAcimaMediaAvaliacao();
     }
+
     public List<Restaurante> buscarPorAvaliacaoMinima(Double avaliacaoMinima) {
         return restauranteRepository.findByAvaliacaoGreaterThanEqual(BigDecimal.valueOf(avaliacaoMinima));
     }
+
     public List<String> buscarCategorias() {
         return restauranteRepository.buscarCategoriasDisponiveis();
     }
+
     public List<Restaurante> buscarProximos(String cep) {
         System.out.println("WARN: Chamada ao método stub buscarProximos(). Implementar lógica de busca por CEP.");
         return restauranteRepository.findByAtivoTrue().stream().limit(5).collect(Collectors.toList());

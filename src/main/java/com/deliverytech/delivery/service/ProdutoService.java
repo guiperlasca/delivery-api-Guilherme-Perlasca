@@ -12,6 +12,8 @@ import com.deliverytech.delivery.repository.RestauranteRepository;
 import com.deliverytech.delivery.security.SecurityUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,11 +29,14 @@ public class ProdutoService {
     // Verifica se o usuário logado é dono do produto
     public boolean isOwner(Long produtoId) {
         Usuario user = securityUtils.getCurrentUser();
-        if (user == null) return false;
-        if (user.getRole().name().equals("ADMIN")) return true;
+        if (user == null)
+            return false;
+        if (user.getRole().name().equals("ADMIN"))
+            return true;
 
         Optional<Produto> produto = produtoRepository.findById(produtoId);
-        if (produto.isEmpty()) return false;
+        if (produto.isEmpty())
+            return false;
 
         // O usuário deve ser dono do restaurante deste produto
         return user.getRole().name().equals("RESTAURANTE") &&
@@ -48,9 +53,11 @@ public class ProdutoService {
     @Autowired
     private ModelMapper modelMapper;
 
+    @CacheEvict(value = "produtos", allEntries = true)
     public Produto cadastrar(ProdutoRequestDTO produtoDTO) {
         Restaurante restaurante = restauranteRepository.findById(produtoDTO.getRestauranteId())
-                .orElseThrow(() -> new EntityNotFoundException("Restaurante não encontrado: " + produtoDTO.getRestauranteId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Restaurante não encontrado: " + produtoDTO.getRestauranteId()));
 
         if (!restaurante.getAtivo()) {
             throw new BusinessException("Não é possível cadastrar produto para restaurante inativo");
@@ -63,11 +70,13 @@ public class ProdutoService {
         return produtoRepository.save(produto);
     }
 
+    @Cacheable(value = "produtos", key = "#id")
     public Produto buscarPorId(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado: " + id));
     }
 
+    @CacheEvict(value = "produtos", allEntries = true)
     public Produto atualizar(Long id, ProdutoRequestDTO produtoAtualizadoDTO) {
         Produto produto = buscarPorId(id); // Garante 404
 
@@ -83,6 +92,7 @@ public class ProdutoService {
         return produtoRepository.save(produto);
     }
 
+    @CacheEvict(value = "produtos", allEntries = true)
     public void alterarDisponibilidade(Long id, Boolean disponivel) {
         Produto produto = buscarPorId(id);
         if (disponivel == null) {
@@ -92,6 +102,7 @@ public class ProdutoService {
         produtoRepository.save(produto);
     }
 
+    @CacheEvict(value = "produtos", allEntries = true)
     public void deletar(Long id) {
         Produto produto = buscarPorId(id); // Garante 404
         produtoRepository.delete(produto);
@@ -106,33 +117,43 @@ public class ProdutoService {
 
     // --- Métodos de Busca ---
 
+    @Cacheable(value = "produtos")
     public List<Produto> buscarTodos() {
         return produtoRepository.findAll();
     }
+
     public List<Produto> buscarPorRestaurante(Long restauranteId) {
         return produtoRepository.findByRestauranteIdAndDisponivelTrue(restauranteId);
     }
+
     public List<Produto> buscarTodosPorRestaurante(Long restauranteId) {
         return produtoRepository.findByRestauranteId(restauranteId);
     }
+
     public List<Produto> buscarPorCategoria(String categoria) {
         return produtoRepository.findByCategoriaAndDisponivelTrue(categoria);
     }
+
     public List<Produto> buscarPorNome(String nome) {
         return produtoRepository.findByNomeContainingIgnoreCase(nome);
     }
+
     public List<Produto> buscarPorFaixaPreco(BigDecimal precoMin, BigDecimal precoMax) {
         return produtoRepository.findByPrecoBetween(precoMin, precoMax);
     }
+
     public List<Produto> buscarPorRestauranteECategoria(Long restauranteId, String categoria) {
         return produtoRepository.buscarPorRestauranteECategoria(restauranteId, categoria);
     }
+
     public List<Produto> buscarPorRestauranteOrdenadoPorPreco(Long restauranteId) {
         return produtoRepository.buscarPorRestauranteOrdenadoPorPreco(restauranteId);
     }
+
     public List<Produto> buscarPorPrecoMaximo(Long restauranteId, BigDecimal precoMax) {
         return produtoRepository.buscarPorRestauranteEPrecoMaximo(restauranteId, precoMax);
     }
+
     public List<String> buscarCategorias() {
         return produtoRepository.buscarCategoriasDisponiveis();
     }
