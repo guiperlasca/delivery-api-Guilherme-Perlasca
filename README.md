@@ -76,6 +76,24 @@ cd delivery-api
 ./mvnw spring-boot:run
 ```
 
+### 🐳 Executando com Docker
+
+Se você tiver o Docker instalado, pode rodar a aplicação sem instalar o Java:
+
+1. **Construir e subir o container:**
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Acessar a aplicação:**
+    - API: http://localhost:8080/api
+    - Swagger UI: http://localhost:8080/swagger-ui.html
+
+3. **Parar a aplicação:**
+   ```bash
+   docker-compose down
+   ```
+
 ### Acesse:
 | Recurso | URL |
 |--------|-----|
@@ -232,12 +250,42 @@ src/main/java/com/deliverytech/delivery/
 - [✅] Tratamento Global de Exceções (@ControllerAdvice)
 - [✅] Documentação de API com Swagger (OpenAPI)
 - [✅] Autenticação JWT + Spring Security
+- [✅] Testes Unitários e de Integração
+- [✅] Containerização com Docker e Cache
 - [ ] Migrar banco para PostgreSQL
 - [ ] Sistema de avaliação + reputação
 - [ ] Upload de imagens (S3 / Firebase)
 - [ ] WebSockets para pedidos em tempo real
 - [ ] Pagamentos (Pix / Cartão)
 - [ ] Deploy (Railway, Render, AWS ou Azure)
+
+---
+
+## 🧪 Testes Automatizados
+
+O projeto utiliza **JUnit 5**, **Mockito** e **Spring Boot Test** para garantir a qualidade do código.
+
+### Executando os Testes
+Para rodar toda a suíte de testes (Unitários e Integração):
+```bash
+./mvnw test
+```
+
+### Estratégia de Testes
+- **Testes Unitários:** Focam nas regras de negócio dos Services, isolando dependências (Repositórios) com Mockito.
+  - Ex: `ClienteServiceTest`, `PedidoServiceTest`.
+- **Testes de Integração:** Validam os Controllers e o fluxo HTTP completo, utilizando um banco de dados em memória (H2) e MockMvc com segurança simulada (`@WithMockUser`).
+  - Ex: `ClienteControllerIT`, `PedidoControllerIT`.
+
+## ⚡ Performance e Cache
+
+Para otimizar o tempo de resposta e reduzir a carga no banco de dados, foi implementado cache na camada de serviços.
+
+- **Tecnologia:** Spring Cache com `ConcurrentMapCache` (em memória).
+- **Estratégia:**
+  - `@Cacheable`: Armazena resultados de leituras frequentes (ex: `buscarPorId`, `buscarTodos`).
+  - `@CacheEvict`: Invalida o cache automaticamente quando dados são criados, atualizados ou excluídos, garantindo consistência.
+- **Entidades Cacheadas:** Restaurantes e Produtos.
 
 ---
 
